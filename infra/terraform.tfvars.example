@@ -1,0 +1,3 @@
+# Copy this to terraform.tfvars and fill in your values
+sender_email  = "yourname@yourdomain.com"
+iam_user_name = "missive-ses-sender"
