@@ -50,4 +50,4 @@ crash.log
 next-env.d.ts
 
 # drizzle
-/drizzle/
+# /drizzle/ — migration files must be committed to version control
