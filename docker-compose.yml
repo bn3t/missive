@@ -1,4 +1,3 @@
-
 services:
   postgres:
     image: postgres:18
@@ -10,7 +9,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data_missive:/var/lib/postgresql/data
+      - postgres_data_missive:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U missive']
       interval: 10s

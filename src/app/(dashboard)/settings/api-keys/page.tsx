@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth/client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -105,11 +106,9 @@ export default function ApiKeysPage() {
             if (!open) setNewlyCreatedKey(null);
           }}
         >
-          <DialogTrigger>
-            <Button>
+          <DialogTrigger className={cn(buttonVariants())}>
               <Plus className="mr-2 h-4 w-4" />
               Create Key
-            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

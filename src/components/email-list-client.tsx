@@ -2,9 +2,24 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { Search, Calendar as CalendarIcon, X, MoreHorizontal, ExternalLink, Copy, RotateCcw, Mail } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Table,
   TableBody,
@@ -13,17 +28,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Paperclip, Search, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 
 type EmailRow = {
   id: string;
   to: string;
   subject: string;
   template: string | null;
-  status: string;
-  tenantId: string | null;
-  hasAttachments: boolean;
+  transport: string | null;
+  status: "sent" | "failed";
   sentAt: Date;
+  hasAttachments?: boolean;
+  messageId?: string | null;
 };
 
 interface EmailListClientProps {
@@ -32,8 +56,26 @@ interface EmailListClientProps {
   totalPages: number;
   search: string;
   status: string;
+  template?: string;
   dateFrom: string;
   dateTo: string;
+}
+
+function StatusBadge({ status }: { status: "sent" | "failed" }) {
+  if (status === "sent") {
+    return (
+      <Badge variant="outline" className="bg-success/10 text-success border-success/30 hover:bg-success/20">
+        <span className="mr-1.5 h-2 w-2 rounded-full bg-success" />
+        Delivered
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20">
+      <span className="mr-1.5 h-2 w-2 rounded-full bg-destructive" />
+      Failed
+    </Badge>
+  );
 }
 
 export function EmailListClient({
@@ -42,174 +84,275 @@ export function EmailListClient({
   totalPages,
   search: initialSearch,
   status: initialStatus,
+  template: initialTemplate,
   dateFrom: initialDateFrom,
   dateTo: initialDateTo,
 }: EmailListClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  function updateFilters(key: string, value: string) {
+  const [search, setSearch] = useState(initialSearch);
+  const [status, setStatus] = useState<"all" | "sent" | "failed">(initialStatus as any || "all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    initialDateFrom || initialDateTo
+      ? {
+          from: initialDateFrom ? new Date(initialDateFrom) : undefined,
+          to: initialDateTo ? new Date(initialDateTo) : undefined,
+        }
+      : undefined
+  );
+
+  // Sync with URL params when they change (for browser back/forward)
+  useEffect(() => {
+    setSearch(initialSearch);
+    setStatus((initialStatus as any) || "all");
+    setDateRange(
+      initialDateFrom || initialDateTo
+        ? {
+            from: initialDateFrom ? new Date(initialDateFrom) : undefined,
+            to: initialDateTo ? new Date(initialDateTo) : undefined,
+          }
+        : undefined
+    );
+  }, [initialSearch, initialStatus, initialDateFrom, initialDateTo]);
+
+  const updateFilters = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
+    if (value && value !== "all") {
       params.set(key, value);
     } else {
       params.delete(key);
     }
-    params.delete("page"); // Reset page on filter change
+    params.delete("page"); // Reset to page 1
     router.push(`/emails?${params.toString()}`);
-  }
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
+    if (range?.from) {
+      params.set("dateFrom", range.from.toISOString().split("T")[0]);
+    } else {
+      params.delete("dateFrom");
+    }
+    if (range?.to) {
+      params.set("dateTo", range.to.toISOString().split("T")[0]);
+    } else {
+      params.delete("dateTo");
+    }
+    router.push(`/emails?${params.toString()}`);
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatus("all");
+    setDateRange(undefined);
+    router.push("/emails");
+  };
+
+  const hasActiveFilters = search || status !== "all" || dateRange?.from;
 
   return (
-    <div className="space-y-4">
-      {/* Filters - Resend-inspired */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+    <div>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 p-4 border-b border-border bg-card">
         {/* Search */}
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <div className="relative flex-1 min-w-[260px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by recipient or subject…"
-            defaultValue={initialSearch}
-            className="pl-10 h-10"
+            placeholder="Search by recipient or subject..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                updateFilters("search", (e.target as HTMLInputElement).value);
+                updateFilters("search", search || null);
               }
             }}
-            onBlur={(e) => {
-              updateFilters("search", e.target.value);
-            }}
+            onBlur={() => updateFilters("search", search || null)}
+            className="pl-9"
           />
         </div>
 
-        {/* Status filters */}
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant={initialStatus === "" ? "default" : "outline"}
-            size="sm"
-            onClick={() => updateFilters("status", "")}
+        {/* Date Range */}
+        <Popover>
+          <PopoverTrigger
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "justify-start text-left font-normal min-w-[220px]",
+              !dateRange?.from && "text-muted-foreground"
+            )}
           >
-            All
-          </Button>
-          <Button
-            variant={initialStatus === "sent" ? "default" : "outline"}
-            size="sm"
-            onClick={() => updateFilters("status", "sent")}
-          >
-            Sent
-          </Button>
-          <Button
-            variant={initialStatus === "failed" ? "default" : "outline"}
-            size="sm"
-            onClick={() => updateFilters("status", "failed")}
-          >
-            Failed
-          </Button>
-        </div>
-
-        {/* Date range */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              FROM
-            </div>
-            <Input
-              type="date"
-              defaultValue={initialDateFrom}
-              onChange={(e) => updateFilters("dateFrom", e.target.value)}
-              className="h-10 w-[140px]"
+            <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}
+                  </>
+                ) : (
+                  dateRange.from.toLocaleDateString()
+                )
+              ) : (
+                "Select dates"
+              )}
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={handleDateRangeChange}
+              initialFocus
+              numberOfMonths={2}
             />
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              TO
-            </div>
-            <Input
-              type="date"
-              defaultValue={initialDateTo}
-              onChange={(e) => updateFilters("dateTo", e.target.value)}
-              className="h-10 w-[140px]"
-            />
-          </div>
-        </div>
+          </PopoverContent>
+        </Popover>
 
-        {/* Clear filters */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            router.push("/emails");
+        {/* Status Filter */}
+        <Select 
+          value={status} 
+          onValueChange={(value) => {
+            const v = (value || "all") as "all" | "sent" | "failed";
+            setStatus(v);
+            updateFilters("status", v === "all" ? null : v);
           }}
-          className="h-10 shrink-0"
         >
-          Clear filters
-        </Button>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="sent">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-success" />
+                Delivered
+              </div>
+            </SelectItem>
+            <SelectItem value="failed">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-destructive" />
+                Failed
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Clear */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4 mr-1.5" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[180px]">Date</TableHead>
-              <TableHead>Recipient</TableHead>
-              <TableHead>Subject</TableHead>
-              <TableHead>Template</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[40px]"></TableHead>
+            <TableRow className="hover:bg-transparent border-border">
+              <TableHead className="w-[110px] text-muted-foreground font-normal">ID</TableHead>
+              <TableHead className="text-muted-foreground font-normal">To</TableHead>
+              <TableHead className="text-muted-foreground font-normal">Subject</TableHead>
+              <TableHead className="text-muted-foreground font-normal w-[110px]">Template</TableHead>
+              <TableHead className="text-muted-foreground font-normal w-[80px]">Transport</TableHead>
+              <TableHead className="text-muted-foreground font-normal w-[110px]">Status</TableHead>
+              <TableHead className="text-muted-foreground font-normal w-[130px]">Sent</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {emails.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  No emails found.
+                <TableCell colSpan={8} className="h-64">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center mb-4">
+                      <Mail className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium text-foreground mb-1">No emails found</h3>
+                    <p className="text-sm text-muted-foreground max-w-xs">
+                      Try adjusting your search or filter criteria. No matching emails in the log.
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               emails.map((email) => (
-                <TableRow key={email.id}>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(email.sentAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                <TableRow
+                  key={email.id}
+                  className="border-border hover:bg-muted group cursor-pointer"
+                >
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    <Link 
+                      href={`/emails/${email.id}`} 
+                      className="hover:text-foreground transition-colors"
+                    >
+                      {email.id.slice(0, 8)}
+                    </Link>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="font-medium text-sm">
                     {email.to}
                   </TableCell>
-                  <TableCell className="max-w-[300px] truncate">
-                    <Link
+                  <TableCell>
+                    <Link 
                       href={`/emails/${email.id}`}
-                      className="hover:underline"
+                      className="hover:text-foreground line-clamp-1 block max-w-md"
                     >
                       {email.subject}
                     </Link>
                   </TableCell>
                   <TableCell>
                     {email.template ? (
-                      <Badge variant="secondary">{email.template}</Badge>
+                      <span className="text-xs text-muted-foreground capitalize px-2.5 py-0.5 bg-muted rounded-sm">
+                        {email.template}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        email.status === "sent" ? "default" : "destructive"
-                      }
-                    >
-                      {email.status}
-                    </Badge>
+                    {email.transport ? (
+                      <span className="text-xs text-muted-foreground uppercase px-2.5 py-0.5 bg-muted rounded-sm">
+                        {email.transport}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
-                    {email.hasAttachments && (
-                      <Paperclip className="h-4 w-4 text-muted-foreground" />
-                    )}
+                    <StatusBadge status={email.status} />
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(email.sentAt), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-8 w-8 opacity-0 group-hover:opacity-100 transition-all")}>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => router.push(`/emails/${email.id}`)} className="cursor-pointer">
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          View details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            navigator.clipboard.writeText(email.id);
+                          }}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy ID
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Resend
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -218,42 +361,43 @@ export function EmailListClient({
         </Table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("page", String(page - 1));
-                router.push(`/emails?${params.toString()}`);
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("page", String(page + 1));
-                router.push(`/emails?${params.toString()}`);
-              }}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* Pagination footer */}
+      <div className="flex items-center justify-between border-t border-border px-6 py-4 text-sm text-muted-foreground bg-muted">
+        <div>
+          Showing {emails.length} of {totalPages > 1 ? "many" : emails.length} emails
         </div>
-      )}
+        <div className="flex items-center gap-3">
+          {totalPages > 1 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("page", String(page - 1));
+                  router.push(`/emails?${params.toString()}`);
+                }}
+              >
+                Previous
+              </Button>
+              <span>Page {page} of {totalPages}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("page", String(page + 1));
+                  router.push(`/emails?${params.toString()}`);
+                }}
+              >
+                Next
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

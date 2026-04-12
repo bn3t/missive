@@ -96,6 +96,14 @@ export default async function EmailDetailPage({ params }: PageProps) {
                 <dd className="font-mono text-xs truncate">{email.messageId}</dd>
               </div>
             )}
+            {email.transport && (
+              <div>
+                <dt className="text-muted-foreground">Transport</dt>
+                <dd>
+                  <Badge variant="secondary" className="uppercase">{email.transport}</Badge>
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="text-muted-foreground">Attachments</dt>
               <dd className="flex items-center gap-1">

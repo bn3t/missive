@@ -1,17 +1,18 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { sentEmails } from "@/lib/db/schema";
-import { desc, eq, and, like, gte, lte, count, or } from "drizzle-orm";
+import { desc, eq, and, like, gte, lte, count, or, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { EmailListClient } from "@/components/email-list-client";
-import { Mail } from "lucide-react";
+import { EmailStats } from "@/components/email-stats";
 
 interface PageProps {
   searchParams: Promise<{
     page?: string;
     search?: string;
     status?: string;
+    template?: string;
     tenantId?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -27,7 +28,20 @@ export default async function EmailsPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = 25;
 
-  // Build query conditions
+  // Overall stats (independent of current filters)
+  const statsResult = await db
+    .select({
+      total: count(),
+      sent: sql<number>`count(case when ${sentEmails.status} = 'sent' then 1 end)`,
+      failed: sql<number>`count(case when ${sentEmails.status} = 'failed' then 1 end)`,
+    })
+    .from(sentEmails)
+    .where(eq(sentEmails.userId, session.user.id));
+
+  const stats = statsResult[0] || { total: 0, sent: 0, failed: 0 };
+  const successRate = stats.total > 0 ? Math.round((stats.sent / stats.total) * 100) : 0;
+
+  // Build query conditions for paginated list
   const conditions = [eq(sentEmails.userId, session.user.id)];
   if (params.search) {
     conditions.push(
@@ -40,6 +54,7 @@ export default async function EmailsPage({ searchParams }: PageProps) {
   if (params.tenantId) conditions.push(eq(sentEmails.tenantId, params.tenantId));
   if (params.status === "sent" || params.status === "failed")
     conditions.push(eq(sentEmails.status, params.status));
+  if (params.template) conditions.push(eq(sentEmails.template, params.template));
   if (params.dateFrom) conditions.push(gte(sentEmails.sentAt, new Date(params.dateFrom)));
   if (params.dateTo) conditions.push(lte(sentEmails.sentAt, new Date(params.dateTo)));
 
@@ -60,27 +75,33 @@ export default async function EmailsPage({ searchParams }: PageProps) {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <div className="flex items-center gap-3">
-          <Mail className="h-6 w-6" />
-          <h1 className="text-2xl font-bold tracking-tight">Emails</h1>
-          <span className="text-sm text-muted-foreground">
-            {total} total sent
-          </span>
-        </div>
-        <p className="text-muted-foreground">Transactional email log and delivery inspector. Clone of Resend activity view.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">Email Logs</h1>
+        <p className="text-muted-foreground mt-1">Monitor and track your transactional email activity</p>
       </div>
 
-      <EmailListClient
-        emails={emails}
-        page={page}
-        totalPages={totalPages}
-        search={params.search ?? ""}
-        status={params.status ?? ""}
-        dateFrom={params.dateFrom ?? ""}
-        dateTo={params.dateTo ?? ""}
+      <EmailStats
+        total={stats.total}
+        sent={stats.sent}
+        failed={stats.failed}
+        successRate={successRate}
       />
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <EmailListClient
+          emails={emails}
+          page={page}
+          totalPages={totalPages}
+          search={params.search ?? ""}
+          status={params.status ?? "all"}
+          template={params.template ?? "all"}
+          dateFrom={params.dateFrom ?? ""}
+          dateTo={params.dateTo ?? ""}
+        />
+      </div>
     </div>
   );
 }
+
+
