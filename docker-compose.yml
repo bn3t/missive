@@ -1,0 +1,31 @@
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: missive-postgres
+    environment:
+      POSTGRES_DB: missive
+      POSTGRES_USER: missive
+      POSTGRES_PASSWORD: bn
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data_missive:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U missive']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: missive-mailhog
+    ports:
+      - '1025:1025'  # SMTP server for Nodemailer
+      - '8025:8025'  # Web UI to inspect sent emails (http://localhost:8025)
+    restart: unless-stopped
+
+volumes:
+  postgres_data_missive:
+    driver: local
