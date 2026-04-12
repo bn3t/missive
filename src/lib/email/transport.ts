@@ -1,37 +1,31 @@
 import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
-import { env } from "@/lib/env";
+import type { Transporter, SendMailOptions } from "nodemailer";
+import { env, type EmailTransport } from "@/lib/env";
 
-let transporter: Transporter | null = null;
+// ─── Lazy singleton transporters ─────────────────────────────────────────────
 
-export function getTransporter(): Transporter {
-  if (transporter) return transporter;
+const transporters = new Map<EmailTransport, Transporter>();
 
-  if (env.EMAIL_TRANSPORT === "ses") {
-    const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
-    const sesClient = new SESClient({
+function getOrCreateTransporter(type: EmailTransport): Transporter {
+  const cached = transporters.get(type);
+  if (cached) return cached;
+
+  let transporter: Transporter;
+
+  if (type === "ses") {
+    const { SESv2Client, SendEmailCommand } = require("@aws-sdk/client-sesv2");
+    const sesClient = new SESv2Client({
       region: env.AWS_REGION,
       credentials: {
-        accessKeyId: env.AWS_ACCESS_KEY_ID ?? "",
-        secretAccessKey: env.AWS_SECRET_ACCESS_KEY ?? "",
+        accessKeyId: env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
       },
     });
     transporter = nodemailer.createTransport({
       SES: { sesClient, SendEmailCommand },
     });
-  } else if (env.EMAIL_TRANSPORT === "mailhog") {
-    // MailHog simulates a real SMTP server (port 1025 by default).
-    // It captures all emails instead of delivering them.
-    // View them at http://localhost:8025
-    transporter = nodemailer.createTransport({
-      host: env.MAILHOG_HOST,
-      port: env.MAILHOG_PORT,
-      secure: false,
-      logger: true,
-      debug: true,
-    });
   } else {
-    // smtp transport
+    // smtp
     transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
       port: env.SMTP_PORT ?? 587,
@@ -40,9 +34,26 @@ export function getTransporter(): Transporter {
         env.SMTP_USER && env.SMTP_PASS
           ? { user: env.SMTP_USER, pass: env.SMTP_PASS }
           : undefined,
+      logger: true,
+      debug: process.env.NODE_ENV !== "production",
     });
   }
 
+  transporters.set(type, transporter);
   return transporter;
 }
 
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Send an email via the specified transport.
+ * The caller is responsible for ensuring the transport is in env.EMAIL_TRANSPORTS
+ * before calling this — validation belongs in sender.ts.
+ */
+export async function sendViaTransport(
+  transport: EmailTransport,
+  mailOptions: SendMailOptions
+): Promise<any> {
+  const transporter = getOrCreateTransporter(transport);
+  return transporter.sendMail(mailOptions);
+}

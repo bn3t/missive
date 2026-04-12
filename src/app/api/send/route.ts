@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/server";
-import { sendEmail, type SendEmailInput } from "@/lib/email/sender";
+import { sendEmail, TransportNotConfiguredError } from "@/lib/email/sender";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -7,6 +7,7 @@ const sendEmailSchema = z.object({
   to: z.string().email(),
   subject: z.string().min(1),
   html: z.string().min(1),
+  transport: z.enum(["ses", "smtp"]).optional(),
   template: z.string().optional(),
   tenantId: z.string().optional(),
   attachments: z
@@ -27,10 +28,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!session?.user) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Parse and validate request body
@@ -38,10 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const parsed = sendEmailSchema.safeParse(body);
@@ -52,11 +47,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await sendEmail({
-    ...parsed.data,
-    userId: session.user.id,
-  });
+  try {
+    const result = await sendEmail({
+      ...parsed.data,
+      userId: session.user.id,
+    });
 
-  const status = result.status === "sent" ? 200 : 502;
-  return NextResponse.json(result, { status });
+    const status = result.status === "sent" ? 200 : 502;
+    return NextResponse.json(result, { status });
+  } catch (error) {
+    if (error instanceof TransportNotConfiguredError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
 }

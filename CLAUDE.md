@@ -16,7 +16,7 @@ Single Next.js application with three concerns:
 - **oRPC** — Type-safe RPC layer for dashboard data fetching. Procedures live in `src/lib/rpc/procedures/`. Router at `src/lib/rpc/router.ts`.
 - **Better Auth 1.4.22** — Pinned to this version because it includes the `apiKey` plugin (removed in 1.6.x). Import from `better-auth/plugins` (not `better-auth/plugins/api-key` — that subpath isn't exported).
 - **Drizzle ORM** — Schema in `src/lib/db/schema.ts`. Config in `drizzle.config.ts`.
-- **Nodemailer** — SES transport uses `{ sesClient, SendEmailCommand }` (v3 types, not the old `{ ses, aws }` pattern).
+- **Nodemailer** — Transport layer in `src/lib/email/transport.ts`. `sendViaTransport(transport, mailOptions)` dispatches to a lazy-singleton Nodemailer transporter for the given type. No fallback — the caller explicitly selects the transport. SES uses `{ sesClient, SendEmailCommand }` (AWS SDK v3). SMTP uses standard Nodemailer SMTP options with `logger: true` in non-production.
 
 ## Route Structure
 
@@ -29,6 +29,10 @@ Single Next.js application with three concerns:
 ## Environment
 
 All env vars are validated at startup via `src/lib/env.ts` (Zod). See `.env.example`.
+
+Key transport vars:
+- `EMAIL_TRANSPORTS` — comma-separated list of enabled transports (`ses`, `smtp`). First entry = default. Zod validates credentials are present for each listed transport at startup.
+- `configuredTransports` — exported `Set<EmailTransport>` from `env.ts` for O(1) membership checks in `sender.ts`.
 
 ## Database
 

@@ -1,6 +1,6 @@
-import { createId } from "@paralleldrive/cuid2";
 import {
   pgTable,
+  uuid,
   text,
   boolean,
   timestamp,
@@ -10,7 +10,7 @@ import {
 // ─── Better Auth Tables ────────────────────────────────────────────────────
 
 export const user = pgTable("user", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
@@ -24,24 +24,24 @@ export const user = pgTable("user", {
 });
 
 export const session = pgTable("session", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   expiresAt: timestamp("expires_at").notNull(),
   token: text("token").notNull().unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  impersonatedBy: text("impersonated_by"),
+  impersonatedBy: uuid("impersonated_by"),
 });
 
 export const account = pgTable("account", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   accessToken: text("access_token"),
@@ -56,7 +56,7 @@ export const account = pgTable("account", {
 });
 
 export const verification = pgTable("verification", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -65,12 +65,12 @@ export const verification = pgTable("verification", {
 });
 
 export const apikey = pgTable("apikey", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: text("name"),
   start: text("start"),
   prefix: text("prefix"),
   key: text("key").notNull().unique(),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   refillInterval: integer("refill_interval"),
@@ -93,9 +93,7 @@ export const apikey = pgTable("apikey", {
 // ─── Application Tables ────────────────────────────────────────────────────
 
 export const sentEmails = pgTable("sent_emails", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => createId()),
+  id: uuid("id").primaryKey().defaultRandom(),
   to: text("to").notNull(),
   subject: text("subject").notNull(),
   htmlBody: text("html_body").notNull(),
@@ -106,7 +104,8 @@ export const sentEmails = pgTable("sent_emails", {
   messageId: text("message_id"),
   tenantId: text("tenant_id"),
   hasAttachments: boolean("has_attachments").notNull().default(false),
+  transport: text("transport"),
   errorMessage: text("error_message"),
-  userId: text("user_id").notNull(),
+  userId: uuid("user_id").notNull(),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 });

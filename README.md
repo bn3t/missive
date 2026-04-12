@@ -7,14 +7,15 @@
 ## Quick Start
 
 ```bash
-# 1. Start Postgres and MailHog
+# 1. Start Postgres
 docker compose up -d
 
 # 2. Install dependencies
 npm install
 
-# 3. Copy and configure environment (uses mailhog by default)
+# 3. Copy and configure environment
 cp .env.example .env.local
+# Edit .env.local — set EMAIL_TRANSPORTS and the required credentials for each transport
 
 # 4. Run database migrations
 npm run db:push
@@ -27,38 +28,63 @@ npm run dev
 ```
 
 Dashboard available at `http://localhost:3000`.
-MailHog UI available at `http://localhost:8025` to inspect sent emails.
 
-## Testing / Simulating Emails
+---
 
-Test scripts are located in the `scripts/` folder.
+## Email Transports
 
-The project uses **MailHog** by default to capture all emails locally.
+Missive supports **SES** and **SMTP** as email transports. Both are optional; one or both can be enabled at the same time.
 
-### Quick test (via real API endpoint):
+### Configuration
+
+Set `EMAIL_TRANSPORTS` in your `.env` to a comma-separated list of the transports you want to enable:
+
+```env
+EMAIL_TRANSPORTS=ses          # SES only
+EMAIL_TRANSPORTS=smtp         # SMTP only
+EMAIL_TRANSPORTS=ses,smtp     # both enabled; SES is the default
+EMAIL_TRANSPORTS=smtp,ses     # both enabled; SMTP is the default
+```
+
+**Order matters**: the first entry is the default transport used when an API caller does not specify one.
+
+Each transport requires its own credentials:
+
+| Transport | Required env vars |
+|---|---|
+| `ses` | `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| `smtp` | `SMTP_HOST` (+ optional `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) |
+
+Startup validation (Zod) fails immediately if a transport is listed in `EMAIL_TRANSPORTS` but its credentials are missing.
+
+### Per-request transport selection
+
+API callers can choose which transport to use on a per-request basis via the optional `transport` field in the request body. If the requested transport is not in `EMAIL_TRANSPORTS`, the API returns `400`.
+
+If `transport` is omitted, the first entry in `EMAIL_TRANSPORTS` is used.
+
+The transport used for each email is stored in the database and visible in the dashboard.
+
+---
+
+## Testing
 
 1. Run `npm run seed` (creates admin user)
 2. Start the dev server (`npm run dev`)
 3. Login at http://localhost:3000 (admin@missive.dev / admin1234)
-4. Go to **Settings → API Keys** → Create key (name it "test-script")
-5. Copy the full key and add to `.env.local`:
+4. Go to **Settings → API Keys** → Create key
+5. Copy the key and add to `.env.local`:
    ```env
    MISSIVE_API_KEY=mk_your_key_here
    ```
-6. Run the test:
+6. Run:
    ```bash
-   npm run send-test
+   npm run send-test                        # default transport
+   npm run send-test -- --transport ses     # force SES
+   npm run send-test -- --transport smtp    # force SMTP
+   npm run send-test 2 --transport smtp     # template 2 via SMTP
+   npm run send-test your@email.com         # custom recipient
    ```
-
-This tests the full flow (`POST /api/send` → auth → Nodemailer → MailHog). Other options:
-
-```bash
-npm run send-test 2                # Email verification template
-npm run send-test 3                # Password reset template
-npm run send-test your@email.com   # Send to custom address
-```
-
-View all captured emails at **http://localhost:8025**.
 
 ---
 
@@ -72,7 +98,7 @@ View all captured emails at **http://localhost:8025**.
 | Database | PostgreSQL |
 | Auth | Better Auth (email/password + API keys) |
 | RPC | oRPC |
-| Email sending | Nodemailer (SES / SMTP / MailHog) |
+| Email sending | Nodemailer (SES + SMTP, caller-selectable per request) |
 | Validation | Zod |
 
 ---
@@ -85,11 +111,14 @@ View all captured emails at **http://localhost:8025**.
 POST /api/send
 Authorization: Bearer mk_your-api-key
 Content-Type: application/json
+```
 
+```json
 {
   "to": "user@example.com",
   "subject": "Verify your email address",
   "html": "<p>Click <a href=\"...\">here</a> to verify.</p>",
+  "transport": "ses",
   "template": "verify-email",
   "tenantId": "tenant_abc123",
   "attachments": [
@@ -99,6 +128,29 @@ Content-Type: application/json
       "contentType": "application/pdf"
     }
   ]
+}
+```
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `to` | string | ✅ | Recipient email address |
+| `subject` | string | ✅ | Email subject |
+| `html` | string | ✅ | HTML body |
+| `transport` | `"ses"` \| `"smtp"` | ☐ | Transport to use. Defaults to the first entry in `EMAIL_TRANSPORTS`. Returns `400` if not in configured list. |
+| `template` | string | ☐ | Template identifier (stored for filtering) |
+| `tenantId` | string | ☐ | Tenant identifier (stored for filtering) |
+| `attachments` | array | ☐ | Array of `{ filename, content (base64), contentType }` |
+
+**Response:**
+
+```json
+{
+  "id": "clxyz...",
+  "status": "sent",
+  "transport": "ses",
+  "messageId": "<abc@eu-central-1.amazonses.com>"
 }
 ```
 
@@ -127,7 +179,7 @@ See `.env.example` for all available environment variables.
 
 ---
 
-### Infrastructure / SES Setup
+## Infrastructure / SES Setup
 
 ### Prerequisites
 - Terraform >= 1.0
@@ -141,19 +193,25 @@ See `.env.example` for all available environment variables.
 5. `terraform apply`
 6. Check your inbox for the AWS verification email and click the link
 7. Retrieve credentials:
+   ```
    terraform output aws_access_key_id
    terraform output -raw aws_secret_access_key
+   ```
 
 ### Environment variables
-Add to your `.env`:
-  AWS_REGION=us-east-1
-  AWS_ACCESS_KEY_ID=<from output>
-  AWS_SECRET_ACCESS_KEY=<from output>
+Add to your `.env.local`:
+```env
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=<from output>
+AWS_SECRET_ACCESS_KEY=<from output>
+```
 
 ### Note on sandbox mode
 In SES sandbox mode, you can only send to verified addresses.
-Verify your recipient test email too, either by adding a second
-`aws_sesv2_email_identity` resource in main.tf, or manually in the AWS console.
+Verify your recipient email too, either by adding a second
+`aws_sesv2_email_identity` resource in `main.tf`, or manually in the AWS console.
+
+---
 
 # License
 

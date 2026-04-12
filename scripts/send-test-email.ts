@@ -1,19 +1,20 @@
 import { env } from "../src/lib/env";
 
-const DEFAULT_TO = "test@example.com";
 const API_URL = "http://localhost:3000/api/send";
+
+// Recipient: CLI arg > TEST_EMAIL_TO env var > error
+const TEST_EMAIL_TO = process.env.TEST_EMAIL_TO?.trim();
 
 const testEmails = [
   {
     name: "Welcome Email",
-    to: DEFAULT_TO,
+    to: "", // resolved after CLI parsing
     subject: "Welcome to Missive!",
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #3b82f6;">Welcome aboard! 🎉</h1>
         <p>Thank you for using <strong>Missive</strong>.</p>
         <p>This email was sent through the <code>/api/send</code> endpoint.</p>
-        <p>You can view it at: <a href="http://localhost:8025">http://localhost:8025</a></p>
         <hr />
         <p style="color: #666; font-size: 14px;">
           Sent at: ${new Date().toISOString()}
@@ -23,13 +24,13 @@ const testEmails = [
   },
   {
     name: "Email Verification",
-    to: DEFAULT_TO,
+    to: "", // resolved after CLI parsing
     subject: "Verify your email address",
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Please verify your email</h2>
         <p>Click the button below to verify your email address:</p>
-        <a href="https://example.com/verify?token=123456" 
+        <a href="https://example.com/verify?token=123456"
            style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
           Verify Email
         </a>
@@ -41,7 +42,7 @@ const testEmails = [
   },
   {
     name: "Password Reset",
-    to: DEFAULT_TO,
+    to: "", // resolved after CLI parsing
     subject: "Reset your password",
     html: `
       <div style="font-family: system-ui, sans-serif;">
@@ -69,40 +70,71 @@ async function main() {
     process.exit(1);
   }
 
-  const arg = process.argv[2];
+  // Parse CLI args
+  // Usage: npm run send-test [template#|email] [--transport ses|smtp]
+  const args = process.argv.slice(2);
   let selected = 0;
+  let transportOverride: string | undefined;
+  let recipientOverride: string | undefined;
 
-  if (arg) {
-    const num = parseInt(arg);
-    if (!isNaN(num) && num > 0 && num <= testEmails.length) {
-      selected = num - 1;
-    } else if (arg.includes("@")) {
-      testEmails[0].to = arg;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--transport" && args[i + 1]) {
+      transportOverride = args[i + 1];
+      i++; // skip next
+    } else {
+      const num = parseInt(arg);
+      if (!isNaN(num) && num > 0 && num <= testEmails.length) {
+        selected = num - 1;
+      } else if (arg.includes("@")) {
+        recipientOverride = arg;
+      }
     }
   }
 
+  // Resolve recipient: CLI arg > TEST_EMAIL_TO env var > error
+  const recipient = recipientOverride ?? TEST_EMAIL_TO;
+  if (!recipient) {
+    console.error("❌ No recipient address set.");
+    console.error("   Set TEST_EMAIL_TO in .env.local, or pass an address as a CLI argument:");
+    console.error("   npm run send-test your@email.com");
+    console.error("   (When using SES sandbox, the address must be verified in AWS SES.)");
+    process.exit(1);
+  }
+
+  // Apply recipient to all templates
+  for (const t of testEmails) t.to = recipient;
+
   const test = testEmails[selected];
+
+  const effectiveTransport = transportOverride ?? env.EMAIL_TRANSPORTS[0];
 
   console.log(`Sending: ${test.name}`);
   console.log(`To: ${test.to}`);
   console.log(`Subject: ${test.subject}`);
   console.log(`Endpoint: ${API_URL}`);
-  console.log(`Transport: ${env.EMAIL_TRANSPORT}\n`);
+  console.log(`Configured transports: ${env.EMAIL_TRANSPORTS.join(", ")}`);
+  console.log(`Using transport: ${effectiveTransport}\n`);
+
+  const requestBody: Record<string, unknown> = {
+    to: test.to,
+    subject: test.subject,
+    html: test.html,
+    template: test.name.toLowerCase().replace(/\s+/g, "-"),
+  };
+  if (transportOverride) {
+    requestBody.transport = transportOverride;
+  }
 
   try {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "x-api-key": apiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        to: test.to,
-        subject: test.subject,
-        html: test.html,
-        template: test.name.toLowerCase().replace(/\s+/g, "-"),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -118,9 +150,8 @@ async function main() {
 
     console.log("✅ Email sent successfully via API!");
     console.log(`ID: ${result.id}`);
+    console.log(`Transport used: ${result.transport}`);
     if (result.messageId) console.log(`Message ID: ${result.messageId}`);
-
-    console.log("\n📧 Check the captured email at: http://localhost:8025");
   } catch (error) {
     console.error("❌ Failed to send email:");
     console.error(error instanceof Error ? error.message : error);
@@ -128,10 +159,13 @@ async function main() {
   }
 
   console.log("\nUsage:");
-  console.log("  npm run send-test                  # Welcome email");
-  console.log("  npm run send-test 2                # Verification email");
-  console.log("  npm run send-test 3                # Password reset");
-  console.log("  npm run send-test your@email.com   # Custom recipient");
+  console.log("  npm run send-test your@email.com             # Send to specific address (required if TEST_EMAIL_TO not set)");
+  console.log("  npm run send-test 2 your@email.com           # Verification email template");
+  console.log("  npm run send-test 3 your@email.com           # Password reset template");
+  console.log("  npm run send-test -- --transport ses         # Force SES transport");
+  console.log("  npm run send-test -- --transport smtp        # Force SMTP transport");
+  console.log("  npm run send-test 2 --transport smtp         # Template 2 via SMTP");
+  console.log("\n  Or set TEST_EMAIL_TO=you@yourdomain.com in .env.local to avoid passing it every time.");
 }
 
 main().catch(console.error);

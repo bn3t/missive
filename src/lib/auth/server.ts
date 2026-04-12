@@ -10,6 +10,12 @@ export const auth = betterAuth({
     schema,
   }),
 
+  advanced: {
+    database: {
+      generateId: "uuid",
+    },
+  },
+
   emailAndPassword: {
     enabled: true,
   },
