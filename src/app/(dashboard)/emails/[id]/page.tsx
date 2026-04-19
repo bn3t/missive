@@ -1,15 +1,17 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { sentEmails } from "@/lib/db/schema";
+import { sentEmails, emailAttachments } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Paperclip } from "lucide-react";
+import { formatBytes } from "@/lib/utils";
+import { PdfPreviewDialog } from "@/components/pdf-preview-dialog";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -34,6 +36,18 @@ export default async function EmailDetailPage({ params }: PageProps) {
     .limit(1);
 
   if (!email) notFound();
+
+  const attachments = email.hasAttachments
+    ? await db
+        .select({
+          id: emailAttachments.id,
+          filename: emailAttachments.filename,
+          contentType: emailAttachments.contentType,
+          size: emailAttachments.size,
+        })
+        .from(emailAttachments)
+        .where(eq(emailAttachments.emailId, email.id))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -104,18 +118,6 @@ export default async function EmailDetailPage({ params }: PageProps) {
                 </dd>
               </div>
             )}
-            <div>
-              <dt className="text-muted-foreground">Attachments</dt>
-              <dd className="flex items-center gap-1">
-                {email.hasAttachments ? (
-                  <>
-                    <Paperclip className="h-4 w-4" /> Yes
-                  </>
-                ) : (
-                  "None"
-                )}
-              </dd>
-            </div>
             {email.errorMessage && (
               <div className="col-span-full">
                 <dt className="text-muted-foreground">Error</dt>
@@ -125,6 +127,39 @@ export default async function EmailDetailPage({ params }: PageProps) {
           </dl>
         </CardContent>
       </Card>
+
+      {/* Attachments card */}
+      {attachments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Attachments</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {attachments.map((att) => (
+              <div key={att.id} className="flex items-center gap-3">
+                <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="font-mono text-sm">{att.filename}</span>
+                <Badge variant="secondary" className="text-xs">{att.contentType}</Badge>
+                <span className="text-sm text-muted-foreground">{formatBytes(att.size)}</span>
+                <div className="ml-auto flex items-center gap-2">
+                  {att.contentType === "application/pdf" && (
+                    <PdfPreviewDialog
+                      src={`/api/emails/${email.id}/attachments/${att.id}`}
+                      filename={att.filename}
+                    />
+                  )}
+                  <Link
+                    href={`/api/emails/${email.id}/attachments/${att.id}?download=1`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Download
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* HTML preview */}
       <Card>

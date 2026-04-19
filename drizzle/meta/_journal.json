@@ -8,6 +8,13 @@
       "when": 1775997980309,
       "tag": "0000_uneven_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776619732684,
+      "tag": "0001_worthless_vision",
+      "breakpoints": true
     }
   ]
 }
