@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { sentEmails } from "@/lib/db/schema";
+import { sentEmails, emailAttachments } from "@/lib/db/schema";
 import { env, configuredTransports, type EmailTransport } from "@/lib/env";
 import { sendViaTransport } from "./transport";
 import { randomUUID } from "crypto";
@@ -49,6 +49,14 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   const id = randomUUID();
 
+  // Hoist base64→Buffer decoding so the same Buffers are reused for both
+  // the Nodemailer transport payload and the DB insert.
+  const attachmentBuffers = (input.attachments ?? []).map((a) => ({
+    filename: a.filename,
+    contentType: a.contentType,
+    content: Buffer.from(a.content, "base64"),
+  }));
+
   const baseRecord = {
     id,
     to: input.to,
@@ -67,18 +75,28 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       to: input.to,
       subject: input.subject,
       html: input.html,
-      attachments: input.attachments?.map((a) => ({
-        filename: a.filename,
-        content: Buffer.from(a.content, "base64"),
-        contentType: a.contentType,
-      })),
+      attachments: attachmentBuffers.length > 0 ? attachmentBuffers : undefined,
     });
 
-    await db.insert(sentEmails).values({
-      ...baseRecord,
-      status: "sent",
-      messageId: result.messageId ?? null,
-      errorMessage: null,
+    await db.transaction(async (tx) => {
+      await tx.insert(sentEmails).values({
+        ...baseRecord,
+        status: "sent",
+        messageId: result.messageId ?? null,
+        errorMessage: null,
+      });
+
+      if (attachmentBuffers.length > 0) {
+        await tx.insert(emailAttachments).values(
+          attachmentBuffers.map((a) => ({
+            emailId: id,
+            filename: a.filename,
+            contentType: a.contentType,
+            size: a.content.length,
+            content: a.content,
+          }))
+        );
+      }
     });
 
     return {
@@ -90,11 +108,25 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-    await db.insert(sentEmails).values({
-      ...baseRecord,
-      status: "failed",
-      messageId: null,
-      errorMessage,
+    await db.transaction(async (tx) => {
+      await tx.insert(sentEmails).values({
+        ...baseRecord,
+        status: "failed",
+        messageId: null,
+        errorMessage,
+      });
+
+      if (attachmentBuffers.length > 0) {
+        await tx.insert(emailAttachments).values(
+          attachmentBuffers.map((a) => ({
+            emailId: id,
+            filename: a.filename,
+            contentType: a.contentType,
+            size: a.content.length,
+            content: a.content,
+          }))
+        );
+      }
     });
 
     return {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useMemo, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Calendar as CalendarIcon, X, MoreHorizontal, ExternalLink, Copy, RotateCcw, Mail } from "lucide-react";
+import { Search, Calendar as CalendarIcon, X, MoreHorizontal, ExternalLink, Copy, RotateCcw, Mail, Paperclip } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -262,13 +262,14 @@ export function EmailListClient({
               <TableHead className="text-muted-foreground font-normal w-[80px]">Transport</TableHead>
               <TableHead className="text-muted-foreground font-normal w-[110px]">Status</TableHead>
               <TableHead className="text-muted-foreground font-normal w-[130px]">Sent</TableHead>
+              <TableHead className="w-[36px]"></TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {emails.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-64">
+                <TableCell colSpan={9} className="h-64">
                   <div className="flex flex-col items-center justify-center text-center">
                     <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center mb-4">
                       <Mail className="h-6 w-6 text-muted-foreground" />
@@ -328,6 +329,13 @@ export function EmailListClient({
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDistanceToNow(new Date(email.sentAt), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {email.hasAttachments && (
+                      <span title="Has attachments">
+                        <Paperclip className="h-4 w-4 text-muted-foreground inline-block" />
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

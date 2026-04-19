@@ -5,7 +5,10 @@ import {
   boolean,
   timestamp,
   integer,
+  customType,
 } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
 
 // ─── Better Auth Tables ────────────────────────────────────────────────────
 
@@ -108,4 +111,16 @@ export const sentEmails = pgTable("sent_emails", {
   errorMessage: text("error_message"),
   userId: uuid("user_id").notNull(),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const emailAttachments = pgTable("email_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  emailId: uuid("email_id")
+    .notNull()
+    .references(() => sentEmails.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(),
+  contentType: text("content_type").notNull(),
+  size: integer("size").notNull(),
+  content: bytea("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Mail, Bell, Sun, Moon, Monitor } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -23,12 +24,13 @@ interface DashboardHeaderProps {
 }
 
 const navItems = [
-  { label: "Emails", href: "/emails", active: true },
+  { label: "Emails", href: "/emails" },
   { label: "API Keys", href: "/settings/api-keys" },
   { label: "Settings", href: "/settings" },
 ]
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
+  const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
 
@@ -65,7 +67,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               key={item.label}
               href={item.href}
               className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                item.active
+                pathname === item.href
                   ? "bg-secondary text-secondary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
