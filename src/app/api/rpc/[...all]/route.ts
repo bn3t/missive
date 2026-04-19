@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const headersList = await headers();
 
   const { matched, response } = await handler.handle(request, {
-    context: { headers: headersList } as any,
+    context: { headers: headersList } as unknown as Record<string, never>,
   });
 
   if (matched) {

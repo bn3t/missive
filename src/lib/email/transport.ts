@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
-import type { Transporter, SendMailOptions } from "nodemailer";
+import type { Transporter, SendMailOptions, SentMessageInfo } from "nodemailer";
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { env, type EmailTransport } from "@/lib/env";
 
 // ─── Lazy singleton transporters ─────────────────────────────────────────────
@@ -13,7 +14,6 @@ function getOrCreateTransporter(type: EmailTransport): Transporter {
   let transporter: Transporter;
 
   if (type === "ses") {
-    const { SESv2Client, SendEmailCommand } = require("@aws-sdk/client-sesv2");
     const sesClient = new SESv2Client({
       region: env.AWS_REGION,
       credentials: {
@@ -53,7 +53,7 @@ function getOrCreateTransporter(type: EmailTransport): Transporter {
 export async function sendViaTransport(
   transport: EmailTransport,
   mailOptions: SendMailOptions
-): Promise<any> {
+): Promise<SentMessageInfo> {
   const transporter = getOrCreateTransporter(transport);
   return transporter.sendMail(mailOptions);
 }

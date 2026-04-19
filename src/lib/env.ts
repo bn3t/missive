@@ -2,8 +2,6 @@ import { z } from "zod";
 
 export type EmailTransport = "ses" | "smtp";
 
-const VALID_TRANSPORTS: EmailTransport[] = ["ses", "smtp"];
-
 const envSchema = z
   .object({
     // Core

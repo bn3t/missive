@@ -3,17 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "seed": "tsx --env-file=.env.local seed.ts",
-    "send-test": "tsx --env-file=.env.local scripts/send-test-email.ts",
-    "send-test-pdf": "tsx --env-file=.env.local scripts/send-test-pdf.ts",
+    "compile": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "lint": "eslint"
+    "dev": "next dev",
+    "lint:fix": "eslint --fix",
+    "lint": "eslint",
+    "seed": "tsx --env-file=.env.local seed.ts",
+    "send-test-pdf": "tsx --env-file=.env.local scripts/send-test-pdf.ts",
+    "send-test": "tsx --env-file=.env.local scripts/send-test-email.ts",
+    "start": "next start",
+    "test:watch": "vitest",
+    "test": "vitest run",
+    "validate": "npm run lint && npm run compile && npm run test && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.1029.0",
@@ -45,17 +50,23 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
     "dotenv": "^17.4.1",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "jsdom": "^29.0.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   }
 }
