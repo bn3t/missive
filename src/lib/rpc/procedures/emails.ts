@@ -1,4 +1,3 @@
-import { os } from "@orpc/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { sentEmails } from "@/lib/db/schema";

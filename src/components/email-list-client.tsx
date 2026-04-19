@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Search, Calendar as CalendarIcon, X, MoreHorizontal, ExternalLink, Copy, RotateCcw, Mail, Paperclip } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -84,7 +84,6 @@ export function EmailListClient({
   totalPages,
   search: initialSearch,
   status: initialStatus,
-  template: initialTemplate,
   dateFrom: initialDateFrom,
   dateTo: initialDateTo,
 }: EmailListClientProps) {
@@ -92,7 +91,9 @@ export function EmailListClient({
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(initialSearch);
-  const [status, setStatus] = useState<"all" | "sent" | "failed">(initialStatus as any || "all");
+  const [status, setStatus] = useState<"all" | "sent" | "failed">(
+    (initialStatus as "all" | "sent" | "failed") || "all"
+  );
   const [dateRange, setDateRange] = useState<DateRange | undefined>(
     initialDateFrom || initialDateTo
       ? {
@@ -104,8 +105,9 @@ export function EmailListClient({
 
   // Sync with URL params when they change (for browser back/forward)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearch(initialSearch);
-    setStatus((initialStatus as any) || "all");
+    setStatus((initialStatus as "all" | "sent" | "failed") || "all");
     setDateRange(
       initialDateFrom || initialDateTo
         ? {
