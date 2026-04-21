@@ -44,7 +44,7 @@ type EmailRow = {
   subject: string;
   template: string | null;
   transport: string | null;
-  status: "sent" | "failed";
+  status: "pending" | "sent" | "failed";
   sentAt: Date;
   hasAttachments?: boolean;
   messageId?: string | null;
@@ -61,12 +61,20 @@ interface EmailListClientProps {
   dateTo: string;
 }
 
-function StatusBadge({ status }: { status: "sent" | "failed" }) {
+function StatusBadge({ status }: { status: "pending" | "sent" | "failed" }) {
   if (status === "sent") {
     return (
       <Badge variant="outline" className="bg-success/10 text-success border-success/30 hover:bg-success/20">
         <span className="mr-1.5 h-2 w-2 rounded-full bg-success" />
         Delivered
+      </Badge>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-muted-foreground/30 hover:bg-muted">
+        <span className="mr-1.5 h-2 w-2 rounded-full bg-muted-foreground" />
+        Pending
       </Badge>
     );
   }
