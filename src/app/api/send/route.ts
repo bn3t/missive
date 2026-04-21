@@ -7,7 +7,7 @@ const sendEmailSchema = z.object({
   to: z.string().email(),
   subject: z.string().min(1),
   html: z.string().min(1),
-  transport: z.enum(["ses", "smtp"]).optional(),
+  transport: z.enum(["ses", "smtp"]),
   template: z.string().optional(),
   tenantId: z.string().optional(),
   attachments: z

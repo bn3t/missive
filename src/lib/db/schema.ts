@@ -102,7 +102,7 @@ export const sentEmails = pgTable("sent_emails", {
   htmlBody: text("html_body").notNull(),
   template: text("template"),
   status: text("status", {
-    enum: ["sent", "failed"],
+    enum: ["pending", "sent", "failed"],
   }).notNull(),
   messageId: text("message_id"),
   tenantId: text("tenant_id"),
