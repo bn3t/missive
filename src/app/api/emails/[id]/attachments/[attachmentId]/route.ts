@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { emailAttachments } from "@/lib/db/schema";
+import { emailAttachments, sentEmails } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
@@ -16,15 +16,18 @@ export async function GET(
   const { id: emailId, attachmentId } = await params;
 
   const [attachment] = await db
-    .select()
+    .select({ emailAttachments })
     .from(emailAttachments)
+    .innerJoin(sentEmails, eq(emailAttachments.emailId, sentEmails.id))
     .where(
       and(
         eq(emailAttachments.id, attachmentId),
-        eq(emailAttachments.emailId, emailId)
+        eq(emailAttachments.emailId, emailId),
+        eq(sentEmails.userId, session.user.id)
       )
     )
-    .limit(1);
+    .limit(1)
+    .then((rows) => rows.map((r) => r.emailAttachments));
 
   if (!attachment) {
     return Response.json({ error: "Not found" }, { status: 404 });
