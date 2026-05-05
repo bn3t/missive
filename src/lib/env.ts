@@ -62,6 +62,9 @@ const envSchema = z
 export type Env = z.infer<typeof envSchema>;
 
 function validateEnv(): Env {
+  if (process.env.SKIP_ENV_VALIDATION === "1" || process.env.NEXT_PHASE === "phase-production-build") {
+    return {} as Env;
+  }
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
     console.error("❌ Invalid environment variables:", parsed.error.flatten().fieldErrors);
