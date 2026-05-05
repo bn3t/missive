@@ -1,0 +1,45 @@
+name: Build and Push
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate image tags
+        id: image-tags
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          SHA_SHORT=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+          TAGS="ghcr.io/${REPO_LOWER}:latest,ghcr.io/${REPO_LOWER}:sha-${SHA_SHORT}"
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "Generated tags: ${TAGS}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push with Railpack
+        uses: iloveitaly/github-action-railpack@master
+        with:
+          push: true
+          platforms: "linux/amd64,linux/arm64"
+          tags: ${{ steps.image-tags.outputs.tags }}
+        env:
+          SKIP_ENV_VALIDATION: "1"
