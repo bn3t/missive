@@ -6,6 +6,8 @@ on:
     types:
       - completed
     branches: [main]
+  push:
+    branches: [fix/docker-build-env-validation]
 
 permissions:
   contents: read
@@ -14,7 +16,7 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +25,7 @@ jobs:
         id: image-tags
         run: |
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          SHA_SHORT=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+          SHA_SHORT=$(echo "${{ github.event.workflow_run.head_sha || github.sha }}" | cut -c1-7)
           TAGS="ghcr.io/${REPO_LOWER}:latest,ghcr.io/${REPO_LOWER}:sha-${SHA_SHORT}"
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
           echo "Generated tags: ${TAGS}"
@@ -41,5 +43,5 @@ jobs:
           push: true
           platforms: "linux/amd64,linux/arm64"
           tags: ${{ steps.image-tags.outputs.tags }}
-        env:
-          SKIP_ENV_VALIDATION: "1"
+          env: |
+            SKIP_ENV_VALIDATION=1
