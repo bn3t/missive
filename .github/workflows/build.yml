@@ -43,5 +43,3 @@ jobs:
           push: true
           platforms: "linux/amd64,linux/arm64"
           tags: ${{ steps.image-tags.outputs.tags }}
-          env: |
-            SKIP_ENV_VALIDATION=1
