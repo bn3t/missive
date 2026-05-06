@@ -41,3 +41,14 @@ jobs:
           push: true
           platforms: "linux/amd64,linux/arm64"
           tags: ${{ steps.image-tags.outputs.tags }}
+
+  deploy-to-dokploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Trigger Dokploy Deployment via Webhook
+        run: |
+          curl -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}"
+          echo "Deployment triggered. Health check is performed by Dokploy internally."          
