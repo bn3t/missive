@@ -1,11 +1,14 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { sentEmails } from "@/lib/db/schema";
+import { sentEmails, member as memberTable } from "@/lib/db/schema";
 import { desc, eq, and, like, gte, lte, count, or, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { EmailListClient } from "@/components/email-list-client";
 import { EmailStats } from "@/components/email-stats";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
 
 interface PageProps {
   searchParams: Promise<{
@@ -24,6 +27,41 @@ export default async function EmailsPage({ searchParams }: PageProps) {
   const session = await auth.api.getSession({ headers: headersList });
   if (!session?.user) redirect("/login");
 
+  // Resolve active organization ID: prefer session field, fallback to member lookup
+  let activeOrganizationId: string | null =
+    session.session.activeOrganizationId ?? null;
+
+  if (!activeOrganizationId) {
+    const [membership] = await db
+      .select({ organizationId: memberTable.organizationId })
+      .from(memberTable)
+      .where(eq(memberTable.userId, session.user.id))
+      .limit(1);
+    activeOrganizationId = membership?.organizationId ?? null;
+  }
+
+  if (!activeOrganizationId) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Email Logs</h1>
+          <p className="text-muted-foreground mt-1">Monitor and track your transactional email activity</p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>No organization</CardTitle>
+            <CardDescription>You need to be part of an organization to view and send emails.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/settings/organization/general" className={buttonVariants({ variant: "default" })}>
+              Create an organization
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = 25;
@@ -36,13 +74,13 @@ export default async function EmailsPage({ searchParams }: PageProps) {
       failed: sql<number>`count(case when ${sentEmails.status} = 'failed' then 1 end)`,
     })
     .from(sentEmails)
-    .where(eq(sentEmails.userId, session.user.id));
+    .where(eq(sentEmails.organizationId, activeOrganizationId));
 
   const stats = statsResult[0] || { total: 0, sent: 0, failed: 0 };
   const successRate = stats.total > 0 ? Math.round((stats.sent / stats.total) * 100) : 0;
 
   // Build query conditions for paginated list
-  const conditions = [eq(sentEmails.userId, session.user.id)];
+  const conditions = [eq(sentEmails.organizationId, activeOrganizationId)];
   if (params.search) {
     conditions.push(
       or(

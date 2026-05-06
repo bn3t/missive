@@ -21,15 +21,16 @@ interface DashboardHeaderProps {
     name?: string | null
     email?: string | null
   }
+  organizationName?: string
 }
 
 const navItems = [
   { label: "Emails", href: "/emails" },
   { label: "API Keys", href: "/settings/api-keys" },
-  { label: "Settings", href: "/settings" },
+  { label: "Settings", href: "/settings/organization/general" },
 ]
 
-export function DashboardHeader({ user }: DashboardHeaderProps) {
+export function DashboardHeader({ user, organizationName }: DashboardHeaderProps) {
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
@@ -63,29 +64,29 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
 
         {/* Navigation */}
         <nav className="flex items-center gap-1 ml-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                pathname === item.href
-                  ? "bg-secondary text-secondary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive =
+              item.label === "Settings"
+                ? pathname.startsWith("/settings")
+                : pathname === item.href;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  isActive
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Live updates */}
-        <div className="flex items-center gap-2 text-xs text-success ml-auto mr-4">
-          <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-          Live updates
-        </div>
-
         {/* Right side */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
             <Bell className="h-4 w-4" />
           </Button>
@@ -112,17 +113,29 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="relative h-8 w-8 rounded-full p-0 inline-flex items-center justify-center">
+            <DropdownMenuTrigger className="relative inline-flex items-center gap-2 rounded-full p-0">
               <Avatar className="h-8 w-8 border border-border">
                 <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-medium">
                   {initials}
                 </AvatarFallback>
               </Avatar>
+              {organizationName && (
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {organizationName}
+                </span>
+              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem className="cursor-pointer">Profile</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">Team</DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" render={<Link href="/profile" />}>
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" render={<Link href="/settings/organization/general" />}>
+                Organization settings
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" render={<Link href="/settings/organization/members" />}>
+                Members
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
                 <SignOutButton />
               </DropdownMenuItem>
             </DropdownMenuContent>

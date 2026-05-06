@@ -11,6 +11,7 @@ export async function POST(request: Request) {
   const headersList = await headers();
 
   const { matched, response } = await handler.handle(request, {
+    prefix: "/api/rpc",
     context: { headers: headersList } as unknown as Record<string, never>,
   });
 

@@ -10,6 +10,10 @@ const envSchema = z
     // Auth
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.string().url(),
+    SIGNUP_ENABLED: z
+      .enum(["true", "false", "1", "0"])
+      .default("false")
+      .transform((val) => val === "true" || val === "1"),
 
     // Email — comma-separated list of enabled transports, e.g. "ses,smtp" or "ses" or "smtp"
     // Order matters: the first entry is the default when the API caller doesn't specify one.
