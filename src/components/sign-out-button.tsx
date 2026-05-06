@@ -1,8 +1,6 @@
 "use client";
 
 import { signOut } from "@/lib/auth/client";
-import { LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export function SignOutButton() {
   async function handleSignOut() {
@@ -11,8 +9,8 @@ export function SignOutButton() {
   }
 
   return (
-    <Button variant="ghost" size="icon" onClick={handleSignOut}>
-      <LogOut className="h-4 w-4" />
-    </Button>
+    <span onClick={handleSignOut} className="w-full cursor-pointer">
+      Log out
+    </span>
   );
 }

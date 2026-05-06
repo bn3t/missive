@@ -11,7 +11,7 @@ vi.mock("next-themes", () => ({
 }));
 
 vi.mock("./sign-out-button", () => ({
-  SignOutButton: () => <button>Sign out</button>,
+  SignOutButton: () => <span>Log out</span>,
 }));
 
 describe("DashboardHeader", () => {
@@ -28,7 +28,7 @@ describe("DashboardHeader", () => {
       "href",
       "/settings/api-keys",
     );
-    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings/organization/general");
   });
 
   it("highlights the active route", () => {
