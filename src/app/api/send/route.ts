@@ -1,4 +1,7 @@
 import { auth } from "@/lib/auth/server";
+import { db } from "@/lib/db";
+import { member as memberTable } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { sendEmail, TransportNotConfiguredError } from "@/lib/email/sender";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -31,6 +34,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Resolve organization ID: prefer session field, fallback to member lookup
+  let activeOrganizationId: string | null =
+    session.session.activeOrganizationId ?? null;
+
+  if (!activeOrganizationId) {
+    const [membership] = await db
+      .select({ organizationId: memberTable.organizationId })
+      .from(memberTable)
+      .where(eq(memberTable.userId, session.user.id))
+      .limit(1);
+    activeOrganizationId = membership?.organizationId ?? null;
+  }
+
+  if (!activeOrganizationId) {
+    return NextResponse.json(
+      { error: "You must belong to an organization to send emails" },
+      { status: 403 }
+    );
+  }
+
   // Parse and validate request body
   let body: unknown;
   try {
@@ -51,6 +74,7 @@ export async function POST(request: NextRequest) {
     const result = await sendEmail({
       ...parsed.data,
       userId: session.user.id,
+      organizationId: activeOrganizationId,
     });
 
     const status = result.status === "sent" ? 200 : 502;

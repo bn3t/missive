@@ -24,6 +24,7 @@ export interface SendEmailInput {
   template?: string;
   tenantId?: string;
   userId: string;
+  organizationId: string;
   attachments?: Array<{
     filename: string;
     content: string; // base64-encoded
@@ -64,6 +65,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       tenantId: input.tenantId ?? null,
       hasAttachments: attachmentBuffers.length > 0,
       userId: input.userId,
+      organizationId: input.organizationId,
       status: "pending",
       messageId: null,
       errorMessage: null,

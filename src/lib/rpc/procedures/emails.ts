@@ -40,8 +40,8 @@ export const listEmails = authMiddleware
   .handler(async ({ input, context }) => {
     const conditions = [];
 
-    // Scope by user (API keys have a userId)
-    conditions.push(eq(sentEmails.userId, context.session.user.id));
+    // Scope by organization
+    conditions.push(eq(sentEmails.organizationId, context.activeOrganizationId));
 
     if (input.search) {
       conditions.push(like(sentEmails.to, `%${input.search}%`));
@@ -114,7 +114,7 @@ export const getEmailById = authMiddleware
       .where(
         and(
           eq(sentEmails.id, input.id),
-          eq(sentEmails.userId, context.session.user.id)
+          eq(sentEmails.organizationId, context.activeOrganizationId)
         )
       )
       .limit(1);

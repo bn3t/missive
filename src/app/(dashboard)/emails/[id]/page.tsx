@@ -1,10 +1,9 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { sentEmails, emailAttachments } from "@/lib/db/schema";
+import { sentEmails, emailAttachments, member as memberTable, user } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,6 +21,21 @@ export default async function EmailDetailPage({ params }: PageProps) {
   const session = await auth.api.getSession({ headers: headersList });
   if (!session?.user) redirect("/login");
 
+  // Resolve active organization ID: prefer session field, fallback to member lookup
+  let activeOrganizationId: string | null =
+    session.session.activeOrganizationId ?? null;
+
+  if (!activeOrganizationId) {
+    const [membership] = await db
+      .select({ organizationId: memberTable.organizationId })
+      .from(memberTable)
+      .where(eq(memberTable.userId, session.user.id))
+      .limit(1);
+    activeOrganizationId = membership?.organizationId ?? null;
+  }
+
+  if (!activeOrganizationId) notFound();
+
   const { id } = await params;
 
   const [email] = await db
@@ -30,7 +44,7 @@ export default async function EmailDetailPage({ params }: PageProps) {
     .where(
       and(
         eq(sentEmails.id, id),
-        eq(sentEmails.userId, session.user.id)
+        eq(sentEmails.organizationId, activeOrganizationId)
       )
     )
     .limit(1);
@@ -48,6 +62,30 @@ export default async function EmailDetailPage({ params }: PageProps) {
         .from(emailAttachments)
         .where(eq(emailAttachments.emailId, email.id))
     : [];
+
+  // Look up the sender
+  const [sender] = await db
+    .select({ name: user.name, email: user.email })
+    .from(user)
+    .where(eq(user.id, email.userId))
+    .limit(1);
+
+  // Check if sender is still a member of this org
+  const [senderMembership] = await db
+    .select({ id: memberTable.id })
+    .from(memberTable)
+    .where(
+      and(
+        eq(memberTable.userId, email.userId),
+        eq(memberTable.organizationId, activeOrganizationId)
+      )
+    )
+    .limit(1);
+
+  const sentByLabel =
+    senderMembership && sender
+      ? `${sender.name} <${sender.email}>`
+      : "Removed user";
 
   return (
     <div className="space-y-6">
@@ -69,6 +107,10 @@ export default async function EmailDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
+            <div>
+              <dt className="text-muted-foreground">Sent by</dt>
+              <dd>{sentByLabel}</dd>
+            </div>
             <div>
               <dt className="text-muted-foreground">Recipient</dt>
               <dd className="font-mono">{email.to}</dd>

@@ -38,6 +38,7 @@ export const session = pgTable("session", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   impersonatedBy: uuid("impersonated_by"),
+  activeOrganizationId: text("active_organization_id"),
 });
 
 export const account = pgTable("account", {
@@ -93,6 +94,47 @@ export const apikey = pgTable("apikey", {
   metadata: text("metadata"),
 });
 
+export const organization = pgTable("organization", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  logo: text("logo"),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const member = pgTable("member", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const invitation = pgTable("invitation", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  status: text("status", {
+    enum: ["pending", "accepted", "rejected", "canceled"],
+  })
+    .notNull()
+    .default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  inviterId: uuid("inviter_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ─── Application Tables ────────────────────────────────────────────────────
 
 export const sentEmails = pgTable("sent_emails", {
@@ -110,6 +152,7 @@ export const sentEmails = pgTable("sent_emails", {
   transport: text("transport"),
   errorMessage: text("error_message"),
   userId: uuid("user_id").notNull(),
+  organizationId: uuid("organization_id").references(() => organization.id),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
