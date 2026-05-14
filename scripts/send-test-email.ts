@@ -1,6 +1,6 @@
 import { env } from "../src/lib/env";
 
-const API_URL = "http://localhost:3000/api/send";
+const API_URL = process.env.MISSIVE_API_URL ?? "http://localhost:3000/api/send";
 
 // Recipient: CLI arg > TEST_EMAIL_TO env var > error
 const TEST_EMAIL_TO = process.env.TEST_EMAIL_TO?.trim();
