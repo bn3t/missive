@@ -1,10 +1,8 @@
-import { auth } from "@/lib/auth/server";
-import { db } from "@/lib/db";
-import { member as memberTable } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { sendEmail, TransportNotConfiguredError } from "@/lib/email/sender";
+import { resolveActiveOrganizationId } from "@/lib/db/organization";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireSession } from "@/lib/auth/require-org-member";
 
 const sendEmailSchema = z.object({
   to: z.string().email(),
@@ -26,27 +24,11 @@ const sendEmailSchema = z.object({
 
 export async function POST(request: NextRequest) {
   // Authenticate via Better Auth — supports both session cookie and API key
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
+  const authed = await requireSession(request.headers);
+  if ("response" in authed) return authed.response;
+  const { session } = authed;
 
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Resolve organization ID: prefer session field, fallback to member lookup
-  let activeOrganizationId: string | null =
-    session.session.activeOrganizationId ?? null;
-
-  if (!activeOrganizationId) {
-    const [membership] = await db
-      .select({ organizationId: memberTable.organizationId })
-      .from(memberTable)
-      .where(eq(memberTable.userId, session.user.id))
-      .limit(1);
-    activeOrganizationId = membership?.organizationId ?? null;
-  }
-
+  const activeOrganizationId = await resolveActiveOrganizationId(session);
   if (!activeOrganizationId) {
     return NextResponse.json(
       { error: "You must belong to an organization to send emails" },

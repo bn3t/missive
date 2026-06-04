@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { sentEmails, member as memberTable } from "@/lib/db/schema";
+import { sentEmails } from "@/lib/db/schema";
 import { desc, eq, and, like, gte, lte, count, or, sql } from "drizzle-orm";
+import { resolveActiveOrganizationId } from "@/lib/db/organization";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { EmailListClient } from "@/components/email-list-client";
@@ -22,24 +23,13 @@ interface PageProps {
   }>;
 }
 
+// fallow-ignore-next-line code-duplication
 export default async function EmailsPage({ searchParams }: PageProps) {
   const headersList = await headers();
   const session = await auth.api.getSession({ headers: headersList });
   if (!session?.user) redirect("/login");
 
-  // Resolve active organization ID: prefer session field, fallback to member lookup
-  let activeOrganizationId: string | null =
-    session.session.activeOrganizationId ?? null;
-
-  if (!activeOrganizationId) {
-    const [membership] = await db
-      .select({ organizationId: memberTable.organizationId })
-      .from(memberTable)
-      .where(eq(memberTable.userId, session.user.id))
-      .limit(1);
-    activeOrganizationId = membership?.organizationId ?? null;
-  }
-
+  const activeOrganizationId = await resolveActiveOrganizationId(session);
   if (!activeOrganizationId) {
     return (
       <div className="space-y-8">

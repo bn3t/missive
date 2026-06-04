@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { emailAttachments, sentEmails, member as memberTable } from "@/lib/db/schema";
+import { emailAttachments, sentEmails } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
+import { resolveActiveOrganizationId } from "@/lib/db/organization";
 import { NextRequest } from "next/server";
 
 export async function GET(
@@ -13,19 +14,7 @@ export async function GET(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Resolve active organization ID: prefer session field, fallback to member lookup
-  let activeOrganizationId: string | null =
-    session.session.activeOrganizationId ?? null;
-
-  if (!activeOrganizationId) {
-    const [membership] = await db
-      .select({ organizationId: memberTable.organizationId })
-      .from(memberTable)
-      .where(eq(memberTable.userId, session.user.id))
-      .limit(1);
-    activeOrganizationId = membership?.organizationId ?? null;
-  }
-
+  const activeOrganizationId = await resolveActiveOrganizationId(session);
   if (!activeOrganizationId) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

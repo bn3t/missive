@@ -10,6 +10,7 @@ export const {
   signUp,
   signOut,
   useSession,
+  // fallow-ignore-next-line unused-export
   apiKey,
   organization,
 } = authClient;

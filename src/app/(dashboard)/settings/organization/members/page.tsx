@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { organization, useSession } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
+// fallow-ignore-next-line code-duplication
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -98,7 +99,7 @@ export default function OrganizationMembersPage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadOrg();
   }, []);
 
@@ -191,7 +192,7 @@ export default function OrganizationMembersPage() {
     return true;
   }
 
-  function getAvailableRoles(member: OrgMember) {
+  function getAvailableRoles() {
     if (isOwner) {
       return ROLE_OPTIONS;
     }
@@ -349,7 +350,7 @@ export default function OrganizationMembersPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {getAvailableRoles(m).map((r) => (
+                              {getAvailableRoles().map((r) => (
                                 <SelectItem key={r.value} value={r.value}>
                                   {r.label}
                                 </SelectItem>

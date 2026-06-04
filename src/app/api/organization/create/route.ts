@@ -1,28 +1,21 @@
-import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { organization as organizationTable, member as memberTable, session as sessionTable, sentEmails } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireSession, getCallerMembership } from "@/lib/auth/require-org-member";
 
 const createOrgSchema = z.object({
   name: z.string().min(1).max(100),
 });
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authed = await requireSession(request.headers);
+  if ("response" in authed) return authed.response;
+  const { session } = authed;
 
-  // Check if user already belongs to an org
-  const [existing] = await db
-    .select({ id: memberTable.id })
-    .from(memberTable)
-    .where(eq(memberTable.userId, session.user.id))
-    .limit(1);
-
+  const existing = await getCallerMembership(session.user.id);
   if (existing) {
     return NextResponse.json({ error: "You already belong to an organization" }, { status: 409 });
   }
