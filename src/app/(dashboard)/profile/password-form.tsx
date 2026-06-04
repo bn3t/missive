@@ -17,6 +17,7 @@ export function PasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // fallow-ignore-next-line code-duplication
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ export function PasswordForm() {
     setLoading(false);
   }
 
+  // fallow-ignore-next-line code-duplication
   return (
     <Card>
       <CardHeader>

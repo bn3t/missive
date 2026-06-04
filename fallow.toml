@@ -1,0 +1,12 @@
+ignoreDependencies = ["@base-ui/react", "@orpc/client", "@orpc/shared", "class-variance-authority", "shadcn"]
+
+ignorePatterns = [
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
+  "vitest.config.ts",
+  "vitest.setup.ts",
+  "src/components/ui/**",
+  "scripts/**",
+]

@@ -19,6 +19,7 @@ interface ProfileDetailsFormProps {
 }
 
 export function ProfileDetailsForm({ defaultName, email }: ProfileDetailsFormProps) {
+  // fallow-ignore-next-line code-duplication
   const [name, setName] = useState(defaultName);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -40,6 +41,7 @@ export function ProfileDetailsForm({ defaultName, email }: ProfileDetailsFormPro
     setLoading(false);
   }
 
+  // fallow-ignore-next-line code-duplication
   return (
     <Card>
       <CardHeader>

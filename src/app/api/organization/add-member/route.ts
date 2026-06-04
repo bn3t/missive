@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { user, member as memberTable, sentEmails } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireSession, getCallerMembership } from "@/lib/auth/require-org-member";
 
 const addMemberSchema = z.object({
   email: z.string().email(),
@@ -12,18 +12,11 @@ const addMemberSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authed = await requireSession(request.headers);
+  if ("response" in authed) return authed.response;
+  const { session } = authed;
 
-  // Resolve caller's org
-  const [callerMember] = await db
-    .select({ organizationId: memberTable.organizationId, role: memberTable.role })
-    .from(memberTable)
-    .where(eq(memberTable.userId, session.user.id))
-    .limit(1);
-
+  const callerMember = await getCallerMembership(session.user.id);
   if (!callerMember) {
     return NextResponse.json({ error: "You are not part of an organization" }, { status: 403 });
   }
