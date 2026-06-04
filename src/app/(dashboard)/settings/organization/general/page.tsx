@@ -38,6 +38,15 @@ type OrgData = {
   members: OrgMember[];
 };
 
+function OrgPageHeader({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Building2 className="h-6 w-6" />
+      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+    </div>
+  );
+}
+
 export default function OrganizationGeneralPage() {
   const router = useRouter();
   const { data: sessionData } = useSession();
@@ -71,7 +80,7 @@ export default function OrganizationGeneralPage() {
       setOrgName(data.name);
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     load();
   }, []);
 
@@ -161,10 +170,7 @@ export default function OrganizationGeneralPage() {
   if (loading) {
     return (
       <div className="space-y-6 max-w-2xl">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-6 w-6" />
-          <h1 className="text-2xl font-bold tracking-tight">Organization Settings</h1>
-        </div>
+        <OrgPageHeader title="Organization Settings" />
         <p className="text-muted-foreground">Loading…</p>
       </div>
     );
@@ -173,10 +179,7 @@ export default function OrganizationGeneralPage() {
   if (!org) {
     return (
       <div className="space-y-6 max-w-2xl">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-6 w-6" />
-          <h1 className="text-2xl font-bold tracking-tight">Organization</h1>
-        </div>
+        <OrgPageHeader title="Organization" />
 
         <Card>
           <CardHeader>
@@ -206,10 +209,7 @@ export default function OrganizationGeneralPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <div className="flex items-center gap-3">
-        <Building2 className="h-6 w-6" />
-        <h1 className="text-2xl font-bold tracking-tight">Organization Settings</h1>
-      </div>
+      <OrgPageHeader title="Organization Settings" />
 
       {/* Rename section */}
       <Card>
