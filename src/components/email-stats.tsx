@@ -42,7 +42,7 @@ export function EmailStats({ total, sent, failed, successRate }: EmailStatsProps
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {items.map((item) => (
         <div
           key={item.label}

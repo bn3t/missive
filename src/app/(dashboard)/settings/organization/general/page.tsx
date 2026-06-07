@@ -3,27 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { organization, useSession } from "@/lib/auth/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Building2, Trash2, LogOut } from "lucide-react";
+import { Building2 } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
+import { CreateOrgCard } from "./components/create-org-card";
+import { RenameOrgCard } from "./components/rename-org-card";
+import { DangerZoneCard } from "./components/danger-zone-card";
 
 type OrgMember = {
   id: string;
@@ -38,14 +23,6 @@ type OrgData = {
   members: OrgMember[];
 };
 
-function OrgPageHeader({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <Building2 className="h-6 w-6" />
-      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-    </div>
-  );
-}
 
 export default function OrganizationGeneralPage() {
   const router = useRouter();
@@ -57,7 +34,9 @@ export default function OrganizationGeneralPage() {
   const [saving, setSaving] = useState(false);
 
   // Create form state
-  const [newOrgName, setNewOrgName] = useState("");
+  const [newOrgName, setNewOrgName] = useState(() =>
+    sessionData?.user?.name ? `${sessionData.user.name}'s Organization` : ""
+  );
   const [creating, setCreating] = useState(false);
 
   // Delete dialog state
@@ -80,16 +59,9 @@ export default function OrganizationGeneralPage() {
       setOrgName(data.name);
       setLoading(false);
     }
-     
+
     load();
   }, []);
-
-  // Set default org name from session when we know there's no org
-  useEffect(() => {
-    if (!loading && !org && sessionData?.user?.name) {
-      setNewOrgName(`${sessionData.user.name}'s Organization`);
-    }
-  }, [loading, org, sessionData?.user?.name]);
 
   const currentUserId = sessionData?.user?.id;
   const owners = org?.members.filter((m) => m.role === "owner") ?? [];
@@ -170,7 +142,7 @@ export default function OrganizationGeneralPage() {
   if (loading) {
     return (
       <div className="space-y-6 max-w-2xl">
-        <OrgPageHeader title="Organization Settings" />
+        <PageHeader icon={<Building2 className="h-6 w-6" />} title="Organization Settings" />
         <p className="text-muted-foreground">Loading…</p>
       </div>
     );
@@ -179,166 +151,45 @@ export default function OrganizationGeneralPage() {
   if (!org) {
     return (
       <div className="space-y-6 max-w-2xl">
-        <OrgPageHeader title="Organization" />
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Create an organization</CardTitle>
-            <CardDescription>
-              Create an organization to start sending emails and collaborating with your team.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-org-name">Organization name</Label>
-              <Input
-                id="new-org-name"
-                value={newOrgName}
-                onChange={(e) => setNewOrgName(e.target.value)}
-                placeholder="My Organization"
-              />
-            </div>
-            <Button onClick={handleCreate} disabled={creating || !newOrgName.trim()}>
-              {creating ? "Creating…" : "Create organization"}
-            </Button>
-          </CardContent>
-        </Card>
+        <PageHeader icon={<Building2 className="h-6 w-6" />} title="Organization" />
+        <CreateOrgCard
+          newOrgName={newOrgName}
+          onOrgNameChange={setNewOrgName}
+          onCreate={handleCreate}
+          creating={creating}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <OrgPageHeader title="Organization Settings" />
-
-      {/* Rename section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">General</CardTitle>
-          <CardDescription>Update your organization&apos;s display name.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="org-name">Organization name</Label>
-            <Input
-              id="org-name"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              placeholder="My Organization"
-              disabled={!isOwner}
-            />
-          </div>
-          <Button onClick={handleSave} disabled={saving || !orgName.trim() || !isOwner}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Danger zone */}
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-base text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            Irreversible actions. Proceed with caution.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Leave organization */}
-          {!isLastOwner && (
-            <div className="flex items-center justify-between rounded-md border p-4">
-              <div>
-                <p className="text-sm font-medium">Leave organization</p>
-                <p className="text-sm text-muted-foreground">
-                  Remove yourself from this organization. You will lose access immediately.
-                </p>
-              </div>
-              <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
-                <DialogTrigger render={<Button variant="outline" className="shrink-0 ml-4" />}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Leave
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Leave organization?</DialogTitle>
-                    <DialogDescription>
-                      You will be removed from <strong>{org.name}</strong> and lose access
-                      immediately. This cannot be undone.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setLeaveOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleLeave}
-                      disabled={leaving}
-                    >
-                      {leaving ? "Leaving…" : "Leave organization"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          )}
-
-          {/* Delete organization */}
-          {isOwner && (
-            <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-4">
-              <div>
-                <p className="text-sm font-medium">Delete organization</p>
-                <p className="text-sm text-muted-foreground">
-                  Permanently delete this organization and all its data. This cannot be undone.
-                </p>
-              </div>
-              <Dialog
-                open={deleteOpen}
-                onOpenChange={(open) => {
-                  setDeleteOpen(open);
-                  if (!open) setDeleteConfirm("");
-                }}
-              >
-                <DialogTrigger render={<Button variant="destructive" className="shrink-0 ml-4" />}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Delete organization?</DialogTitle>
-                    <DialogDescription>
-                      This will permanently delete <strong>{org.name}</strong> and all associated
-                      data. To confirm, type the organization name below.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-2">
-                    <Label htmlFor="delete-confirm">
-                      Type <strong>{org.name}</strong> to confirm
-                    </Label>
-                    <Input
-                      id="delete-confirm"
-                      value={deleteConfirm}
-                      onChange={(e) => setDeleteConfirm(e.target.value)}
-                      placeholder={org.name}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={deleting || deleteConfirm !== org.name}
-                    >
-                      {deleting ? "Deleting…" : "Delete organization"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <PageHeader icon={<Building2 className="h-6 w-6" />} title="Organization Settings" />
+      <RenameOrgCard
+        orgName={orgName}
+        onOrgNameChange={setOrgName}
+        onSave={handleSave}
+        saving={saving}
+        isOwner={isOwner}
+      />
+      <DangerZoneCard
+        orgName={org.name}
+        isLastOwner={isLastOwner}
+        isOwner={isOwner}
+        leaveOpen={leaveOpen}
+        onLeaveOpenChange={setLeaveOpen}
+        onLeave={handleLeave}
+        leaving={leaving}
+        deleteOpen={deleteOpen}
+        onDeleteOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) setDeleteConfirm("");
+        }}
+        deleteConfirm={deleteConfirm}
+        onDeleteConfirmChange={setDeleteConfirm}
+        onDelete={handleDelete}
+        deleting={deleting}
+      />
     </div>
   );
 }
