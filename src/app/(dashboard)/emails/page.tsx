@@ -10,6 +10,7 @@ import { EmailStats } from "@/components/email-stats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 
 interface PageProps {
   searchParams: Promise<{
@@ -33,10 +34,7 @@ export default async function EmailsPage({ searchParams }: PageProps) {
   if (!activeOrganizationId) {
     return (
       <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Email Logs</h1>
-          <p className="text-muted-foreground mt-1">Monitor and track your transactional email activity</p>
-        </div>
+        <PageHeader title="Email Logs" description="Monitor and track your transactional email activity" />
         <Card>
           <CardHeader>
             <CardTitle>No organization</CardTitle>
@@ -104,10 +102,7 @@ export default async function EmailsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Email Logs</h1>
-        <p className="text-muted-foreground mt-1">Monitor and track your transactional email activity</p>
-      </div>
+      <PageHeader title="Email Logs" description="Monitor and track your transactional email activity" />
 
       <EmailStats
         total={stats.total}
