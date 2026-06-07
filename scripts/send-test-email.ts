@@ -77,10 +77,15 @@ async function main() {
   let transportOverride: string | undefined;
   let recipientOverride: string | undefined;
 
+  let fromOverride: string | undefined;
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === "--transport" && args[i + 1]) {
       transportOverride = args[i + 1];
+      i++; // skip next
+    } else if (arg === "--from" && args[i + 1]) {
+      fromOverride = args[i + 1];
       i++; // skip next
     } else {
       const num = parseInt(arg);
@@ -111,6 +116,7 @@ async function main() {
 
   console.log(`Sending: ${test.name}`);
   console.log(`To: ${test.to}`);
+  if (fromOverride) console.log(`From: ${fromOverride}`);
   console.log(`Subject: ${test.subject}`);
   console.log(`Endpoint: ${API_URL}`);
   console.log(`Configured transports: ${env.EMAIL_TRANSPORTS.join(", ")}`);
@@ -124,6 +130,9 @@ async function main() {
   };
   if (transportOverride) {
     requestBody.transport = transportOverride;
+  }
+  if (fromOverride) {
+    requestBody.from = fromOverride;
   }
 
   try {
@@ -151,6 +160,7 @@ async function main() {
     console.log("✅ Email sent successfully via API!");
     console.log(`ID: ${result.id}`);
     console.log(`Transport used: ${result.transport}`);
+    if (result.from) console.log(`From: ${result.from}`);
     if (result.messageId) console.log(`Message ID: ${result.messageId}`);
   } catch (error) {
     console.error("❌ Failed to send email:");
@@ -165,6 +175,8 @@ async function main() {
   console.log("  npm run send-test -- --transport ses         # Force SES transport");
   console.log("  npm run send-test -- --transport smtp        # Force SMTP transport");
   console.log("  npm run send-test 2 --transport smtp         # Template 2 via SMTP");
+  console.log('  npm run send-test -- --from "Alice <alice@brand.com>"  # Custom from address');
+  console.log('  npm run send-test 2 --from alice@brand.com   # Template 2 with custom from');
   console.log("\n  Or set TEST_EMAIL_TO=you@yourdomain.com in .env.local to avoid passing it every time.");
 }
 

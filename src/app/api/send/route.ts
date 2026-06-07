@@ -11,6 +11,7 @@ const sendEmailSchema = z.object({
   transport: z.enum(["ses", "smtp"]),
   template: z.string().optional(),
   tenantId: z.string().optional(),
+  from: z.string().trim().min(1).max(320).optional(),
   attachments: z
     .array(
       z.object({

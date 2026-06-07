@@ -21,6 +21,7 @@ export interface SendEmailInput {
   subject: string;
   html: string;
   transport: EmailTransport;
+  from?: string;
   template?: string;
   tenantId?: string;
   userId: string;
@@ -36,6 +37,7 @@ export interface SendEmailResult {
   id: string;
   status: "sent" | "failed";
   transport: EmailTransport;
+  from: string;
   messageId?: string;
   error?: string;
 }
@@ -45,6 +47,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     throw new TransportNotConfiguredError(input.transport);
   }
   const resolvedTransport: EmailTransport = input.transport;
+  const resolvedFrom = input.from?.trim() || env.EMAIL_FROM;
 
   const id = randomUUID();
 
@@ -64,6 +67,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       transport: resolvedTransport,
       tenantId: input.tenantId ?? null,
       hasAttachments: attachmentBuffers.length > 0,
+      fromAddress: resolvedFrom,
       userId: input.userId,
       organizationId: input.organizationId,
       status: "pending",
@@ -86,7 +90,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   try {
     const result = await sendViaTransport(resolvedTransport, {
-      from: env.EMAIL_FROM,
+      from: resolvedFrom,
       to: input.to,
       subject: input.subject,
       html: input.html,
@@ -102,6 +106,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       id,
       status: "sent",
       transport: resolvedTransport,
+      from: resolvedFrom,
       messageId: result.messageId ?? undefined,
     };
   } catch (error) {
@@ -116,6 +121,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       id,
       status: "failed",
       transport: resolvedTransport,
+      from: resolvedFrom,
       error: errorMessage,
     };
   }

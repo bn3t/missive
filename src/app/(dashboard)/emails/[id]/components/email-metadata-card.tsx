@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface EmailMetadataCardProps {
   sentByLabel: string
+  fromAddress: string
   to: string
   status: string
   sentAt: Date
@@ -15,6 +16,7 @@ interface EmailMetadataCardProps {
 
 export function EmailMetadataCard({
   sentByLabel,
+  fromAddress,
   to,
   status,
   sentAt,
@@ -34,6 +36,10 @@ export function EmailMetadataCard({
           <div>
             <dt className="text-muted-foreground">Sent by</dt>
             <dd>{sentByLabel}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">From</dt>
+            <dd className="font-mono">{fromAddress}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Recipient</dt>
