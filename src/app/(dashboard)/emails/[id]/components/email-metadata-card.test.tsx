@@ -6,6 +6,7 @@ const baseSentAt = new Date("2024-03-15T14:30:00Z");
 
 const baseProps = {
   sentByLabel: "Ada Lovelace <ada@example.com>",
+  fromAddress: "noreply@example.com",
   to: "recipient@example.com",
   status: "sent",
   sentAt: baseSentAt,
@@ -84,5 +85,19 @@ describe("EmailMetadataCard", () => {
     render(<EmailMetadataCard {...baseProps} sentByLabel="Removed user" />);
 
     expect(screen.getByText("Removed user")).toBeInTheDocument();
+  });
+
+  it("shows the From address", () => {
+    render(<EmailMetadataCard {...baseProps} fromAddress="noreply@example.com" />);
+
+    expect(screen.getByText("noreply@example.com")).toBeInTheDocument();
+  });
+
+  it("renders From address in monospace", () => {
+    const { container } = render(<EmailMetadataCard {...baseProps} fromAddress="noreply@example.com" />);
+
+    const monoEl = container.querySelector("dd.font-mono");
+    expect(monoEl).not.toBeNull();
+    expect(monoEl?.textContent).toBe("noreply@example.com");
   });
 });
