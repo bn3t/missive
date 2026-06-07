@@ -26,6 +26,7 @@ const listEmailsOutput = z.object({
       transport: z.string().nullable(),
       tenantId: z.string().nullable(),
       hasAttachments: z.boolean(),
+      fromAddress: z.string().nullable(),
       sentAt: z.date(),
     })
   ),
@@ -100,6 +101,7 @@ const getEmailByIdOutput = z.object({
   tenantId: z.string().nullable(),
   hasAttachments: z.boolean(),
   errorMessage: z.string().nullable(),
+  fromAddress: z.string().nullable(),
   userId: z.string(),
   sentAt: z.date(),
 });

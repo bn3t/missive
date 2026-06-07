@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { sentEmails, emailAttachments, member as memberTable, user } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { resolveActiveOrganizationId } from "@/lib/db/organization";
@@ -79,6 +80,7 @@ export default async function EmailDetailPage({ params }: PageProps) {
       <EmailDetailHeader subject={email.subject} />
       <EmailMetadataCard
         sentByLabel={sentByLabel}
+        fromAddress={email.fromAddress ?? env.EMAIL_FROM}
         to={email.to}
         status={email.status}
         sentAt={email.sentAt}
