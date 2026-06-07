@@ -51,3 +51,6 @@ next-env.d.ts
 
 # drizzle
 # /drizzle/ — migration files must be committed to version control
+
+# AI
+handoffs/

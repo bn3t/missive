@@ -1,3 +1,4 @@
+import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -7,6 +8,7 @@ interface FormFieldProps {
   type?: string;
   value: string;
   onChange: (value: string) => void;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
@@ -18,6 +20,7 @@ export function FormField({
   type = "text",
   value,
   onChange,
+  onKeyDown,
   placeholder,
   required,
   disabled,
@@ -31,6 +34,7 @@ export function FormField({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
         required={required}
         disabled={disabled}
       />

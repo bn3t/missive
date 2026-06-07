@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth/server";
 import { ProfileDetailsForm } from "./profile-details-form";
 import { PasswordForm } from "./password-form";
+import { PageHeader } from "@/components/page-header";
 
 export default async function ProfilePage() {
   const headersList = await headers();
@@ -14,12 +15,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-8 max-w-lg">
-      <div>
-        <h1 className="text-2xl font-semibold">Profile</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your account settings
-        </p>
-      </div>
+      <PageHeader title="Profile" description="Manage your account settings" />
       <ProfileDetailsForm
         defaultName={session.user.name ?? ""}
         email={session.user.email}
