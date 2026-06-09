@@ -10,6 +10,7 @@ const sendEmailSchema = z.object({
   template: z.string().optional(),
   tenantId: z.string().optional(),
   from: z.string().trim().min(1).max(320).optional(),
+  replyTo: z.string().trim().min(1).max(320).optional(),
   attachments: z
     .array(
       z.object({
@@ -80,6 +81,53 @@ describe("send route — Zod schema validation for 'from'", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.from).toBe("alice@brand.com");
+    }
+  });
+});
+
+describe("send route — Zod schema validation for 'replyTo'", () => {
+  it("valid body without replyTo passes validation", () => {
+    const result = sendEmailSchema.safeParse(validBase);
+    expect(result.success).toBe(true);
+  });
+
+  it("valid body with a plain replyTo address passes validation", () => {
+    const result = sendEmailSchema.safeParse({ ...validBase, replyTo: "support@brand.com" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.replyTo).toBe("support@brand.com");
+    }
+  });
+
+  it("valid body with a display-name replyTo address passes validation", () => {
+    const result = sendEmailSchema.safeParse({ ...validBase, replyTo: "Support <support@brand.com>" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.replyTo).toBe("Support <support@brand.com>");
+    }
+  });
+
+  it("replyTo as empty string fails validation (min(1) after trim)", () => {
+    const result = sendEmailSchema.safeParse({ ...validBase, replyTo: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.replyTo).toBeDefined();
+    }
+  });
+
+  it("replyTo as whitespace-only string fails validation (min(1) after trim)", () => {
+    const result = sendEmailSchema.safeParse({ ...validBase, replyTo: "   " });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.replyTo).toBeDefined();
+    }
+  });
+
+  it("trims leading/trailing whitespace from a valid replyTo value", () => {
+    const result = sendEmailSchema.safeParse({ ...validBase, replyTo: "  support@brand.com  " });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.replyTo).toBe("support@brand.com");
     }
   });
 });
