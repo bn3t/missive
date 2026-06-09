@@ -17,6 +17,7 @@ const getEmailByIdOutput = z.object({
   hasAttachments: z.boolean(),
   errorMessage: z.string().nullable(),
   fromAddress: z.string().nullable(),
+  replyTo: z.string().nullable(),
   userId: z.string(),
   sentAt: z.date(),
 });
@@ -56,6 +57,7 @@ const baseEmailById = {
   hasAttachments: false,
   errorMessage: null,
   fromAddress: null,
+  replyTo: null,
   userId: "user-1",
   sentAt: new Date("2024-03-15T14:30:00Z"),
 };
@@ -95,6 +97,38 @@ describe("getEmailByIdOutput schema — fromAddress field", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.flatten().fieldErrors.fromAddress).toBeDefined();
+    }
+  });
+});
+
+describe("getEmailByIdOutput schema — replyTo field", () => {
+  it("validates a row with replyTo: null", () => {
+    const result = getEmailByIdOutput.safeParse({ ...baseEmailById, replyTo: null });
+    expect(result.success).toBe(true);
+  });
+
+  it("validates a row with a plain replyTo address", () => {
+    const result = getEmailByIdOutput.safeParse({ ...baseEmailById, replyTo: "support@brand.com" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.replyTo).toBe("support@brand.com");
+    }
+  });
+
+  it("validates a row with a display-name replyTo address", () => {
+    const result = getEmailByIdOutput.safeParse({ ...baseEmailById, replyTo: "Support <support@brand.com>" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.replyTo).toBe("Support <support@brand.com>");
+    }
+  });
+
+  it("fails when replyTo is missing from the object", () => {
+    const { replyTo: _omitted, ...withoutReplyTo } = baseEmailById;
+    const result = getEmailByIdOutput.safeParse(withoutReplyTo);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.replyTo).toBeDefined();
     }
   });
 });

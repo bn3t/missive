@@ -115,3 +115,82 @@ describe("sendEmail — from resolution", () => {
     expect(result.error).toBe("SMTP refused");
   });
 });
+
+describe("sendEmail — replyTo handling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    const mockWhere = vi.fn().mockResolvedValue(undefined);
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    (db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: mockSet });
+
+    const mockTxValues = vi.fn().mockResolvedValue(undefined);
+    const mockTxInsert = vi.fn().mockReturnValue({ values: mockTxValues });
+    const tx = { insert: mockTxInsert };
+    type Tx = typeof tx;
+    (db.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (cb: (tx: Tx) => Promise<void>) => cb(tx)
+    );
+
+    (sendViaTransport as ReturnType<typeof vi.fn>).mockResolvedValue({ messageId: "<msg@example.com>" });
+  });
+
+  it("passes replyTo to sendViaTransport when provided", async () => {
+    await sendEmail({ ...baseInput, replyTo: "support@brand.com" });
+
+    expect(sendViaTransport).toHaveBeenCalledWith(
+      "ses",
+      expect.objectContaining({ replyTo: "support@brand.com" })
+    );
+  });
+
+  it("trims replyTo before passing to sendViaTransport", async () => {
+    await sendEmail({ ...baseInput, replyTo: "  support@brand.com  " });
+
+    expect(sendViaTransport).toHaveBeenCalledWith(
+      "ses",
+      expect.objectContaining({ replyTo: "support@brand.com" })
+    );
+  });
+
+  it("passes undefined replyTo to sendViaTransport when not provided", async () => {
+    await sendEmail({ ...baseInput });
+
+    expect(sendViaTransport).toHaveBeenCalledWith(
+      "ses",
+      expect.not.objectContaining({ replyTo: expect.anything() })
+    );
+  });
+
+  it("stores replyTo in the DB insert when provided", async () => {
+    const mockTxValues = vi.fn().mockResolvedValue(undefined);
+    const mockTxInsert = vi.fn().mockReturnValue({ values: mockTxValues });
+    const tx = { insert: mockTxInsert };
+    type Tx = typeof tx;
+    (db.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (cb: (tx: Tx) => Promise<void>) => cb(tx)
+    );
+
+    await sendEmail({ ...baseInput, replyTo: "support@brand.com" });
+
+    expect(mockTxValues).toHaveBeenCalledWith(
+      expect.objectContaining({ replyTo: "support@brand.com" })
+    );
+  });
+
+  it("stores null replyTo in the DB insert when not provided", async () => {
+    const mockTxValues = vi.fn().mockResolvedValue(undefined);
+    const mockTxInsert = vi.fn().mockReturnValue({ values: mockTxValues });
+    const tx = { insert: mockTxInsert };
+    type Tx = typeof tx;
+    (db.transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (cb: (tx: Tx) => Promise<void>) => cb(tx)
+    );
+
+    await sendEmail({ ...baseInput });
+
+    expect(mockTxValues).toHaveBeenCalledWith(
+      expect.objectContaining({ replyTo: null })
+    );
+  });
+});

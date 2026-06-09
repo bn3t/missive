@@ -102,6 +102,7 @@ const getEmailByIdOutput = z.object({
   hasAttachments: z.boolean(),
   errorMessage: z.string().nullable(),
   fromAddress: z.string().nullable(),
+  replyTo: z.string().nullable(),
   userId: z.string(),
   sentAt: z.date(),
 });

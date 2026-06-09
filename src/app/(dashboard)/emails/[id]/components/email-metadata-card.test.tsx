@@ -100,4 +100,37 @@ describe("EmailMetadataCard", () => {
     expect(monoEl).not.toBeNull();
     expect(monoEl?.textContent).toBe("noreply@example.com");
   });
+
+  it("shows the Reply-To label and value when replyTo is provided", () => {
+    render(<EmailMetadataCard {...baseProps} replyTo="support@brand.com" />);
+
+    expect(screen.getByText("Reply-To")).toBeInTheDocument();
+    expect(screen.getByText("support@brand.com")).toBeInTheDocument();
+  });
+
+  it("shows a display-name replyTo value correctly", () => {
+    render(<EmailMetadataCard {...baseProps} replyTo="Support <support@brand.com>" />);
+
+    expect(screen.getByText("Support <support@brand.com>")).toBeInTheDocument();
+  });
+
+  it("does not render a Reply-To section when replyTo is null", () => {
+    render(<EmailMetadataCard {...baseProps} replyTo={null} />);
+
+    expect(screen.queryByText("Reply-To")).not.toBeInTheDocument();
+  });
+
+  it("does not render a Reply-To section when replyTo is omitted", () => {
+    render(<EmailMetadataCard {...baseProps} />);
+
+    expect(screen.queryByText("Reply-To")).not.toBeInTheDocument();
+  });
+
+  it("renders replyTo value in monospace", () => {
+    const { container } = render(<EmailMetadataCard {...baseProps} replyTo="support@brand.com" />);
+
+    const monoEls = container.querySelectorAll("dd.font-mono");
+    const replyToEl = Array.from(monoEls).find((el) => el.textContent === "support@brand.com");
+    expect(replyToEl).not.toBeUndefined();
+  });
 });
