@@ -22,6 +22,7 @@ export interface SendEmailInput {
   html: string;
   transport: EmailTransport;
   from?: string;
+  replyTo?: string;
   template?: string;
   tenantId?: string;
   userId: string;
@@ -68,6 +69,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       tenantId: input.tenantId ?? null,
       hasAttachments: attachmentBuffers.length > 0,
       fromAddress: resolvedFrom,
+      replyTo: input.replyTo?.trim() || null,
       userId: input.userId,
       organizationId: input.organizationId,
       status: "pending",
@@ -94,6 +96,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       to: input.to,
       subject: input.subject,
       html: input.html,
+      replyTo: input.replyTo?.trim() || undefined,
       attachments: attachmentBuffers.length > 0 ? attachmentBuffers : undefined,
     });
 

@@ -84,6 +84,7 @@ export default async function EmailDetailPage({ params }: PageProps) {
         to={email.to}
         status={email.status}
         sentAt={email.sentAt}
+        replyTo={email.replyTo}
         template={email.template}
         tenantId={email.tenantId}
         messageId={email.messageId}

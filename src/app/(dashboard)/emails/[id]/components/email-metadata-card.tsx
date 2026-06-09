@@ -7,6 +7,7 @@ interface EmailMetadataCardProps {
   to: string
   status: string
   sentAt: Date
+  replyTo?: string | null
   template?: string | null
   tenantId?: string | null
   messageId?: string | null
@@ -20,6 +21,7 @@ export function EmailMetadataCard({
   to,
   status,
   sentAt,
+  replyTo,
   template,
   tenantId,
   messageId,
@@ -45,6 +47,12 @@ export function EmailMetadataCard({
             <dt className="text-muted-foreground">Recipient</dt>
             <dd className="font-mono">{to}</dd>
           </div>
+          {replyTo && (
+            <div>
+              <dt className="text-muted-foreground">Reply-To</dt>
+              <dd className="font-mono">{replyTo}</dd>
+            </div>
+          )}
           <div>
             <dt className="text-muted-foreground">Status</dt>
             <dd>
