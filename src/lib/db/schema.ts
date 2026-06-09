@@ -152,6 +152,7 @@ export const sentEmails = pgTable("sent_emails", {
   transport: text("transport"),
   errorMessage: text("error_message"),
   fromAddress: text("from_address"),
+  replyTo: text("reply_to"),
   userId: uuid("user_id").notNull(),
   organizationId: uuid("organization_id").references(() => organization.id),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),

@@ -78,6 +78,7 @@ async function main() {
   let recipientOverride: string | undefined;
 
   let fromOverride: string | undefined;
+  let replyToOverride: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -86,6 +87,9 @@ async function main() {
       i++; // skip next
     } else if (arg === "--from" && args[i + 1]) {
       fromOverride = args[i + 1];
+      i++; // skip next
+    } else if (arg === "--reply-to" && args[i + 1]) {
+      replyToOverride = args[i + 1];
       i++; // skip next
     } else {
       const num = parseInt(arg);
@@ -117,6 +121,7 @@ async function main() {
   console.log(`Sending: ${test.name}`);
   console.log(`To: ${test.to}`);
   if (fromOverride) console.log(`From: ${fromOverride}`);
+  if (replyToOverride) console.log(`Reply-To: ${replyToOverride}`);
   console.log(`Subject: ${test.subject}`);
   console.log(`Endpoint: ${API_URL}`);
   console.log(`Configured transports: ${env.EMAIL_TRANSPORTS.join(", ")}`);
@@ -133,6 +138,9 @@ async function main() {
   }
   if (fromOverride) {
     requestBody.from = fromOverride;
+  }
+  if (replyToOverride) {
+    requestBody.replyTo = replyToOverride;
   }
 
   try {
@@ -177,6 +185,8 @@ async function main() {
   console.log("  npm run send-test 2 --transport smtp         # Template 2 via SMTP");
   console.log('  npm run send-test -- --from "Alice <alice@brand.com>"  # Custom from address');
   console.log('  npm run send-test 2 --from alice@brand.com   # Template 2 with custom from');
+  console.log('  npm run send-test -- --reply-to support@brand.com  # Set Reply-To address');
+  console.log('  npm run send-test -- --reply-to "Support <support@brand.com>"  # Reply-To with display name');
   console.log("\n  Or set TEST_EMAIL_TO=you@yourdomain.com in .env.local to avoid passing it every time.");
 }
 
