@@ -5,6 +5,7 @@ interface EmailHtmlPreviewProps {
 }
 
 export function EmailHtmlPreview({ htmlBody }: EmailHtmlPreviewProps) {
+  if (!htmlBody) return null
   return (
     <Card>
       <CardHeader>
@@ -13,7 +14,7 @@ export function EmailHtmlPreview({ htmlBody }: EmailHtmlPreviewProps) {
       <CardContent>
         <div className="rounded-md border bg-white">
           <iframe
-            srcDoc={htmlBody ?? undefined}
+            srcDoc={htmlBody}
             className="h-[600px] w-full border-0"
             sandbox="allow-same-origin"
             title="Email HTML preview"
