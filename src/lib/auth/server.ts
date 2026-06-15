@@ -87,8 +87,14 @@ export const auth = betterAuth({
       defaultPrefix: "mk_",
       defaultKeyLength: 64,
       enableSessionForAPIKeys: true,
-      apiKeyHeaders: ["x-api-key", "authorization"],
       enableMetadata: true,
+      customAPIKeyGetter: (ctx) => {
+        const xApiKey = ctx.headers?.get("x-api-key");
+        if (xApiKey) return xApiKey;
+        const auth = ctx.headers?.get("authorization");
+        if (!auth) return null;
+        return auth.startsWith("Bearer ") ? auth.slice(7) : auth;
+      },
       rateLimit: {
         enabled: false,
       },

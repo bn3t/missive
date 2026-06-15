@@ -9,7 +9,7 @@ import { redirect, notFound } from "next/navigation";
 import { EmailDetailHeader } from "./components/email-detail-header";
 import { EmailMetadataCard } from "./components/email-metadata-card";
 import { EmailAttachmentsCard } from "./components/email-attachments-card";
-import { EmailHtmlPreview } from "./components/email-html-preview";
+import { EmailBodyTabs } from "./components/email-body-tabs";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -94,7 +94,7 @@ export default async function EmailDetailPage({ params }: PageProps) {
       {attachments.length > 0 && (
         <EmailAttachmentsCard emailId={email.id} attachments={attachments} />
       )}
-      <EmailHtmlPreview htmlBody={email.htmlBody} />
+      <EmailBodyTabs htmlBody={email.htmlBody} textBody={email.textBody} />
     </div>
   );
 }
