@@ -4,25 +4,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth/require-org-member";
 
-const sendEmailSchema = z.object({
-  to: z.string().email(),
-  subject: z.string().min(1),
-  html: z.string().min(1),
-  transport: z.enum(["ses", "smtp"]),
-  template: z.string().optional(),
-  tenantId: z.string().optional(),
-  from: z.string().trim().min(1).max(320).optional(),
-  replyTo: z.string().trim().min(1).max(320).optional(),
-  attachments: z
-    .array(
-      z.object({
-        filename: z.string(),
-        content: z.string(),
-        contentType: z.string(),
-      })
-    )
-    .optional(),
-});
+const sendEmailSchema = z
+  .object({
+    to: z.string().email(),
+    subject: z.string().min(1),
+    html: z.string().min(1).optional(),
+    text: z.string().min(1).optional(),
+    transport: z.enum(["ses", "smtp"]),
+    template: z.string().optional(),
+    tenantId: z.string().optional(),
+    from: z.string().trim().min(1).max(320).optional(),
+    replyTo: z.string().trim().min(1).max(320).optional(),
+    attachments: z
+      .array(
+        z.object({
+          filename: z.string(),
+          content: z.string(),
+          contentType: z.string(),
+        })
+      )
+      .optional(),
+  })
+  .refine((d) => d.html || d.text, {
+    message: "At least one of 'html' or 'text' is required",
+  });
 
 export async function POST(request: NextRequest) {
   // Authenticate via Better Auth — supports both session cookie and API key

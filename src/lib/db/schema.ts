@@ -141,7 +141,8 @@ export const sentEmails = pgTable("sent_emails", {
   id: uuid("id").primaryKey().defaultRandom(),
   to: text("to").notNull(),
   subject: text("subject").notNull(),
-  htmlBody: text("html_body").notNull(),
+  htmlBody: text("html_body"),
+  textBody: text("text_body"),
   template: text("template"),
   status: text("status", {
     enum: ["pending", "sent", "failed"],

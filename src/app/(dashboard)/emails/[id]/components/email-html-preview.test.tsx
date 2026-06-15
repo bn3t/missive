@@ -29,17 +29,11 @@ describe("EmailHtmlPreview", () => {
     expect(iframe).toHaveAttribute("sandbox", "allow-same-origin");
   });
 
-  it("renders without crashing when htmlBody is null", () => {
-    render(<EmailHtmlPreview htmlBody={null} />);
+  it("renders nothing when htmlBody is null", () => {
+    const { container } = render(<EmailHtmlPreview htmlBody={null} />);
 
-    // The component should render (title still present) even without content
-    expect(screen.getByText("HTML Preview")).toBeInTheDocument();
-
-    // The iframe, if rendered, should have a null/undefined/empty srcDoc
-    const iframe = screen.queryByTitle(/email html preview/i) as HTMLIFrameElement | null;
-    if (iframe) {
-      const srcDoc = iframe.getAttribute("srcdoc");
-      expect(srcDoc === null || srcDoc === "" || srcDoc === "null").toBe(true);
-    }
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText("HTML Preview")).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/email html preview/i)).not.toBeInTheDocument();
   });
 });

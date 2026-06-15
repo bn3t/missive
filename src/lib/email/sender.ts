@@ -19,7 +19,8 @@ export class TransportNotConfiguredError extends Error {
 export interface SendEmailInput {
   to: string;
   subject: string;
-  html: string;
+  html?: string;
+  text?: string;
   transport: EmailTransport;
   from?: string;
   replyTo?: string;
@@ -63,7 +64,8 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       id,
       to: input.to,
       subject: input.subject,
-      htmlBody: input.html,
+      htmlBody: input.html ?? null,
+      textBody: input.text ?? null,
       template: input.template ?? null,
       transport: resolvedTransport,
       tenantId: input.tenantId ?? null,
@@ -96,6 +98,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       to: input.to,
       subject: input.subject,
       html: input.html,
+      text: input.text,
       replyTo: input.replyTo?.trim() || undefined,
       attachments: attachmentBuffers.length > 0 ? attachmentBuffers : undefined,
     });
