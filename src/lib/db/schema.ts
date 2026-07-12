@@ -70,6 +70,7 @@ export const verification = pgTable("verification", {
 
 export const apikey = pgTable("apikey", {
   id: uuid("id").primaryKey().defaultRandom(),
+  configId: text("config_id").notNull().default("default"),
   name: text("name"),
   start: text("start"),
   prefix: text("prefix"),
