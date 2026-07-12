@@ -21,7 +21,7 @@ export default function ApiKeysPage() {
     setLoading(true);
     const result = await authClient.apiKey.list();
     if (result.data) {
-      setKeys(result.data as unknown as ApiKeyRow[]);
+      setKeys(result.data.apiKeys as unknown as ApiKeyRow[]);
     }
     setLoading(false);
   }

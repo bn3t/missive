@@ -14,7 +14,7 @@ Single Next.js application with three concerns:
 ## Key Libraries
 
 - **oRPC** — Type-safe RPC layer for dashboard data fetching. Procedures live in `src/lib/rpc/procedures/`. Router at `src/lib/rpc/router.ts`.
-- **Better Auth 1.4.22** — Pinned to this version because it includes the `apiKey` plugin (removed in 1.6.x). Import from `better-auth/plugins` (not `better-auth/plugins/api-key` — that subpath isn't exported).
+- **Better Auth** — The `apiKey` plugin was split out of core into a separate package in 1.6.x: install `@better-auth/api-key` and import `apiKey` from `@better-auth/api-key` (server) and `apiKeyClient` from `@better-auth/api-key/client` (client), not from `better-auth/plugins` / `better-auth/client/plugins`. `@better-auth/api-key` is published in lockstep with `better-auth` (same version each release) — if `npm update` ever bumps one without the other, pin both back to matching versions.
 - **Drizzle ORM** — Schema in `src/lib/db/schema.ts`. Config in `drizzle.config.ts`.
 - **Nodemailer** — Transport layer in `src/lib/email/transport.ts`. `sendViaTransport(transport, mailOptions)` dispatches to a lazy-singleton Nodemailer transporter for the given type. No fallback — the caller explicitly selects the transport. SES uses `{ sesClient, SendEmailCommand }` (AWS SDK v3). SMTP uses standard Nodemailer SMTP options with `logger: true` in non-production.
 
