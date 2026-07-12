@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { apiKey, admin, organization } from "better-auth/plugins";
+import { admin, organization } from "better-auth/plugins";
+import { apiKey } from "@better-auth/api-key";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
@@ -102,6 +103,14 @@ export const auth = betterAuth({
         defaultExpiresIn: null,
       },
       requireName: true,
+      schema: {
+        apikey: {
+          fields: {
+            // Keep the existing "userId" column instead of the plugin's default "referenceId".
+            referenceId: "userId",
+          },
+        },
+      },
     }),
   ],
 });
