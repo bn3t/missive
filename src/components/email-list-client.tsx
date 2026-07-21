@@ -211,7 +211,7 @@ export function EmailListClient({
               mode="range"
               selected={dateRange}
               onSelect={handleDateRangeChange}
-              initialFocus
+              autoFocus
               numberOfMonths={2}
             />
           </PopoverContent>
