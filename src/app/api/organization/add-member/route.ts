@@ -7,7 +7,7 @@ import { z } from "zod";
 import { requireSession, getCallerMembership } from "@/lib/auth/require-org-member";
 
 const addMemberSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   role: z.enum(["member", "admin", "owner"]).default("member"),
 });
 

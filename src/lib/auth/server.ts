@@ -75,12 +75,14 @@ export const auth = betterAuth({
             .from(schema.member)
             .where(eq(schema.member.organizationId, data.organization.id));
 
-          for (const m of members) {
-            await db
-              .update(schema.apikey)
-              .set({ enabled: false })
-              .where(eq(schema.apikey.userId, m.userId));
-          }
+          await Promise.all(
+            members.map((m) =>
+              db
+                .update(schema.apikey)
+                .set({ enabled: false })
+                .where(eq(schema.apikey.userId, m.userId))
+            )
+          );
         },
       },
     }),

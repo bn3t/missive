@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { authMiddleware } from "../middleware";
 
 export const findUserByEmail = authMiddleware
-  .input(z.object({ email: z.string().email() }))
+  .input(z.object({ email: z.email() }))
   .output(
     z.object({ id: z.string(), email: z.string(), name: z.string() }).nullable()
   )

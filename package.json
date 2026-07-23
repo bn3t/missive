@@ -21,16 +21,15 @@
     "test:watch": "vitest",
     "test": "vitest run",
     "validate": "npm run compile && npm run fallow && npm run lint && npm run test && npm run build",
-    "ncu": "ncu -u"
+    "ncu": "ncu -u",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.1090.0",
     "@base-ui/react": "^1.6.0",
     "@better-auth/api-key": "^1.6.23",
-    "@orpc/client": "^1.14.8",
     "@orpc/contract": "^1.14.8",
     "@orpc/server": "^1.14.8",
-    "@orpc/shared": "^1.14.8",
     "@orpc/zod": "^1.14.8",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
@@ -45,7 +44,6 @@
     "react": "19.2.7",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.7",
-    "server-only": "^0.0.1",
     "shadcn": "^4.13.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",

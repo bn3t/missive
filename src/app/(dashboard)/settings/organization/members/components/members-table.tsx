@@ -187,7 +187,7 @@ export function MembersTable({
                   )}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(m.createdAt).toLocaleDateString()}
+                  {new Date(m.createdAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                 </TableCell>
                 <TableCell>
                   {isAdmin && !isCurrentUser && (
