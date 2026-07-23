@@ -2,15 +2,19 @@
 
 import { signOut } from "@/lib/auth/client";
 
-export function SignOutButton() {
-  async function handleSignOut() {
-    await signOut();
-    window.location.href = "/login";
-  }
+async function handleSignOut() {
+  await signOut();
+  window.location.href = "/login";
+}
 
+export function SignOutButton() {
   return (
-    <span onClick={handleSignOut} className="w-full cursor-pointer">
+    <button
+      type="button"
+      onClick={handleSignOut}
+      className="w-full cursor-pointer text-left"
+    >
       Log out
-    </span>
+    </button>
   );
 }
