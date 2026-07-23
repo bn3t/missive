@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { sentEmails } from "@/lib/db/schema";
@@ -112,16 +113,18 @@ export default async function EmailsPage({ searchParams }: PageProps) {
       />
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <EmailListClient
-          emails={emails}
-          page={page}
-          totalPages={totalPages}
-          search={params.search ?? ""}
-          status={params.status ?? "all"}
-          template={params.template ?? "all"}
-          dateFrom={params.dateFrom ?? ""}
-          dateTo={params.dateTo ?? ""}
-        />
+        <Suspense fallback={null}>
+          <EmailListClient
+            emails={emails}
+            page={page}
+            totalPages={totalPages}
+            search={params.search ?? ""}
+            status={params.status ?? "all"}
+            template={params.template ?? "all"}
+            dateFrom={params.dateFrom ?? ""}
+            dateTo={params.dateTo ?? ""}
+          />
+        </Suspense>
       </div>
     </div>
   );

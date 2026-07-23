@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/auth/require-org-member";
 
 const sendEmailSchema = z
   .object({
-    to: z.string().email(),
+    to: z.email(),
     subject: z.string().min(1),
     html: z.string().min(1).optional(),
     text: z.string().min(1).optional(),

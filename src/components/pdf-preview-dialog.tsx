@@ -26,6 +26,7 @@ export function PdfPreviewDialog({ src, filename }: PdfPreviewDialogProps) {
         </DialogHeader>
         <iframe
           src={src}
+          sandbox="allow-same-origin allow-downloads allow-popups"
           className="h-[75vh] w-full rounded-md border"
           title={filename}
         />

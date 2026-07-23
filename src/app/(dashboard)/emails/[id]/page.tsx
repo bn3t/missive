@@ -51,24 +51,24 @@ export default async function EmailDetailPage({ params }: PageProps) {
         .where(eq(emailAttachments.emailId, email.id))
     : [];
 
-  // Look up the sender
-  const [sender] = await db
-    .select({ name: user.name, email: user.email })
-    .from(user)
-    .where(eq(user.id, email.userId))
-    .limit(1);
-
-  // Check if sender is still a member of this org
-  const [senderMembership] = await db
-    .select({ id: memberTable.id })
-    .from(memberTable)
-    .where(
-      and(
-        eq(memberTable.userId, email.userId),
-        eq(memberTable.organizationId, activeOrganizationId)
+  // Look up the sender and check org membership concurrently
+  const [[sender], [senderMembership]] = await Promise.all([
+    db
+      .select({ name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.id, email.userId))
+      .limit(1),
+    db
+      .select({ id: memberTable.id })
+      .from(memberTable)
+      .where(
+        and(
+          eq(memberTable.userId, email.userId),
+          eq(memberTable.organizationId, activeOrganizationId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1),
+  ]);
 
   const sentByLabel =
     senderMembership && sender

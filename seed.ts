@@ -5,7 +5,10 @@ import { eq } from "drizzle-orm";
 
 async function seed() {
   const email = process.env.SEED_EMAIL ?? "admin@missive.dev";
-  const password = process.env.SEED_PASSWORD ?? "admin1234";
+  const password = process.env.SEED_PASSWORD;
+  if (!password) {
+    throw new Error("SEED_PASSWORD environment variable is required");
+  }
   const name = process.env.SEED_NAME ?? "Admin";
 
   let userId: string;

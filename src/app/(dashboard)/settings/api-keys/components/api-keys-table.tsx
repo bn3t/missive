@@ -91,11 +91,11 @@ export function ApiKeysTable({ keys, loading, onDelete }: ApiKeysTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(key.createdAt).toLocaleDateString()}
+                  {new Date(key.createdAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {key.lastRequest
-                    ? new Date(key.lastRequest).toLocaleDateString()
+                    ? new Date(key.lastRequest).toLocaleDateString("en-US", { timeZone: "UTC" })
                     : "Never"}
                 </TableCell>
                 <TableCell>
