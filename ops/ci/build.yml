@@ -1,10 +1,11 @@
 # ⚠️  THIS FILE DOES NOTHING WHERE IT SITS ⚠️
 #
 # It is the replacement for the "Build and Push" workflow, staged here because
-# the agent sandbox forbids writing under the CI workflows directory. To apply it:
+# the agent sandbox forbids writing under the CI workflows directory. To apply it
+# (this also deletes the Claude Code workflow and removes the staging scaffolding,
+# this banner included):
 #
-#     git mv ops/ci/build.yml .github/workflows/build.yml
-#     rmdir -p ops/ci 2>/dev/null || true
+#     ./ops/ci/apply-public-cleanup.sh
 #
 # Changes vs. the current version:
 #   1. The Dokploy deploy only runs when the DOKPLOY_WEBHOOK_URL secret exists,
