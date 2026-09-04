@@ -38,8 +38,11 @@ if git ls-files --error-unmatch .github/workflows/claude.yml >/dev/null 2>&1; th
 fi
 
 # Drop the staging banner from the workflow: everything before "name: Build and Push".
-# Idempotent — a no-op once the banner is gone.
-sed -i '1,/^name: Build and Push$/{/^name: Build and Push$/!d}' .github/workflows/build.yml
+# Idempotent — a no-op once the banner is gone. awk, not `sed -i`: the BSD sed on
+# macOS reads the next argument as a mandatory backup suffix and chokes.
+awk 'f || /^name: Build and Push$/ { f = 1; print }' \
+  .github/workflows/build.yml > .github/workflows/build.yml.tmp
+mv .github/workflows/build.yml.tmp .github/workflows/build.yml
 git add .github/workflows/build.yml
 
 if git ls-files --error-unmatch ops/ci/apply-public-cleanup.sh >/dev/null 2>&1; then
