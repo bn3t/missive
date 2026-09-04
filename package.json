@@ -14,6 +14,7 @@
     "lint:fix": "eslint --fix",
     "lint": "eslint",
     "seed": "tsx --env-file=.env.local seed.ts",
+    "seed:deploy": "tsx seed.ts",
     "send-test-pdf": "tsx --env-file=.env.local scripts/send-test-pdf.ts",
     "send-test": "tsx --env-file=.env.local scripts/send-test-email.ts",
     "migrate:deploy": "tsx scripts/migrate.ts",
