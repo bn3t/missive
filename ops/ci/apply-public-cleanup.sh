@@ -10,24 +10,41 @@
 #     git push --force-with-lease
 #
 # It does two things:
-#   1. Moves the corrected "Build and Push" workflow into place.
+#   1. Replaces the "Build and Push" workflow with the corrected version.
 #   2. Deletes the Claude Code workflow, which on a public repository lets any
 #      GitHub user spend the CLAUDE_CODE_OAUTH_TOKEN by commenting "@claude".
 #
 # Then it removes itself, so nothing of this staging scaffolding is left behind.
+# Every step is guarded, so re-running after a partial run is safe.
 #
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-git mv ops/ci/build.yml .github/workflows/build.yml
-git rm -q .github/workflows/claude.yml
+if [ -f ops/ci/build.yml ]; then
+  # -f because the destination exists: it is the workflow being replaced.
+  git mv -f ops/ci/build.yml .github/workflows/build.yml
+fi
+
+# Sanity check before deleting anything: refuse to run on a branch that does not
+# carry the corrected workflow (e.g. main, where ops/ci/build.yml does not exist).
+if ! grep -q 'DOKPLOY_WEBHOOK_URL is not configured' .github/workflows/build.yml; then
+  echo "The corrected build.yml is not in place — check out fix/gate-dokploy-deploy first." >&2
+  exit 1
+fi
+
+if git ls-files --error-unmatch .github/workflows/claude.yml >/dev/null 2>&1; then
+  git rm -q .github/workflows/claude.yml
+fi
 
 # Drop the staging banner from the workflow: everything before "name: Build and Push".
+# Idempotent — a no-op once the banner is gone.
 sed -i '1,/^name: Build and Push$/{/^name: Build and Push$/!d}' .github/workflows/build.yml
 git add .github/workflows/build.yml
 
-git rm -q ops/ci/apply-public-cleanup.sh
+if git ls-files --error-unmatch ops/ci/apply-public-cleanup.sh >/dev/null 2>&1; then
+  git rm -q ops/ci/apply-public-cleanup.sh
+fi
 rmdir ops/ci ops 2>/dev/null || true
 
 echo "Done. Review with: git status && git diff --cached"
